@@ -16,86 +16,41 @@ class AdminController extends Controller
     {
         $admin = Auth::user();
 
-        // Get professionals/doctors (mock data)
-        $professionals = [
-            [
-                'id' => 1,
-                'name' => 'Doc McStuffins',
-                'email' => 'doc@doctorssg.com',
-                'location' => 'Lagos, NG',
-                'clinic' => 'Martha Eye Center',
-                'patients' => 249,
-                'status' => 'active',
+        // Get professionals/doctors from database
+        $professionals = User::where('role', 'doctor')->get()->map(function ($professional) {
+            return [
+                'id' => $professional->id,
+                'name' => $professional->name,
+                'email' => $professional->email,
+                'phone' => $professional->phone ?? '+234 000 000 0000',
+                'location' => $professional->location ?? 'Lagos, NG',
+                'clinic' => $professional->clinic ?? 'N/A',
+                'specialty' => $professional->specialty ?? 'General Practitioner',
+                'license_number' => $professional->license_number ?? 'LICENSE-2024-001',
+                'patients' => rand(50, 300), // Mock data - replace with actual patient count logic
+                'status' => $professional->status ?? 'Active',
                 'last_active' => '2 hours ago',
-            ],
-            [
-                'id' => 2,
-                'name' => 'Dr. Sarah Smith',
-                'email' => 'sarah@healthcare.com',
-                'location' => 'Abuja, NG',
-                'clinic' => 'Central Medical',
-                'patients' => 156,
-                'status' => 'active',
-                'last_active' => '1 hour ago',
-            ],
-            [
-                'id' => 3,
-                'name' => 'Dr. James Wilson',
-                'email' => 'james@healthcare.com',
-                'location' => 'Lagos, NG',
-                'clinic' => 'City Hospital',
-                'patients' => 203,
-                'status' => 'inactive',
-                'last_active' => '5 days ago',
-            ],
-            [
-                'id' => 4,
-                'name' => 'Dr. Amara Okafor',
-                'email' => 'amara@healthcare.com',
-                'location' => 'Lagos, NG',
-                'clinic' => 'West End Clinic',
-                'patients' => 178,
-                'status' => 'active',
-                'last_active' => '30 minutes ago',
-            ],
-            [
-                'id' => 5,
-                'name' => 'Dr. Chioma Nwosu',
-                'email' => 'chioma@healthcare.com',
-                'location' => 'Enugu, NG',
-                'clinic' => 'Rainbow Hospital',
-                'patients' => 92,
-                'status' => 'suspended',
-                'last_active' => '2 weeks ago',
-            ],
-        ];
+                'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'Jan 15, 2024',
+            ];
+        })->toArray();
 
         // Calculate stats
         $stats = [
             'total_professionals' => count($professionals),
-            'active_professionals' => count(array_filter($professionals, fn($p) => $p['status'] === 'active')),
-            'total_patients' => array_sum(array_column($professionals, 'patients')),
-            'suspended' => count(array_filter($professionals, fn($p) => $p['status'] === 'suspended')),
+            'active_professionals' => count(array_filter($professionals, fn($p) => strtolower($p['status']) === 'active')),
+            'total_patients' => array_sum(array_column($professionals, 'patients')) ?? 0,
+            'suspended' => count(array_filter($professionals, fn($p) => strtolower($p['status']) === 'suspended')),
         ];
 
         // Get other admins
-        $otherAdmins = [
-            [
-                'name' => 'John Doe',
-                'email' => 'john.doe@example.com',
+        $otherAdmins = User::where('role', 'admin')->where('id', '!=', $admin->id)->get()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
                 'status' => 'Active',
-            ],
-            [
-                'name' => 'Jane Smith',
-                'email' => 'jane.smith@example.com',
-                'status' => 'Active',
-            ],
-            [
-                'name' => 'Mike Johnson',
-                'email' => 'mike.johnson@example.com',
-                'status' => 'Active',
-            ],
-        ];
+            ];
+        })->toArray();
 
         return view('admin.dashboard', compact('admin', 'professionals', 'stats', 'otherAdmins'));
     }
@@ -121,6 +76,8 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'required|string',
             'clinic' => 'required|string',
+            'specialty' => 'required|string',
+            'license_number' => 'required|string',
             'location' => 'required|string',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -133,6 +90,8 @@ class AdminController extends Controller
             'phone' => $validated['phone'],
             'clinic' => $validated['clinic'],
             'location' => $validated['location'],
+            'specialty' => $validated['specialty'],
+            'license_number' => $validated['license_number'],
         ]);
 
         return response()->json([
@@ -189,35 +148,29 @@ class AdminController extends Controller
         $admin = Auth::user();
 
         $validated = $request->validate([
-            'name' => 'required|string',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $admin->id,
-            'phone' => 'required|string',
-            'current_password' => 'required_if:new_password,!=null',
+            'phone' => 'nullable|string',
+            'current_password' => 'required_with:new_password',
             'new_password' => 'nullable|string|min:8|confirmed',
         ]);
 
         // Verify current password if changing password
         if ($request->filled('new_password')) {
             if (!Hash::check($request->current_password, $admin->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Current password is incorrect',
-                ], 422);
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'current_password' => ['The provided password does not match your current password.'],
+                ]);
             }
-
             $admin->password = Hash::make($request->new_password);
         }
 
-        $admin->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-        ]);
+        $admin->name = $validated['name'];
+        $admin->email = $validated['email'];
+        $admin->phone = $validated['phone'];
+        $admin->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Settings updated successfully',
-        ]);
+        return redirect()->back()->with('success', 'Settings updated successfully');
     }
 
     /**
@@ -278,7 +231,7 @@ class AdminController extends Controller
         return response()->json([
             'total_professionals' => $professionals->count(),
             'active_professionals' => $professionals->where('status', 'active')->count(),
-            'total_patients' => $professionals->sum('patients_count'),
+            'total_patients' => 0, // Placeholder: sum patients once relationship is defined
             'suspended' => $professionals->where('status', 'suspended')->count(),
         ]);
     }

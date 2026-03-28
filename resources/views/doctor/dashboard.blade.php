@@ -3,629 +3,617 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eye Health Dashboard - Lumi</title>
+    <title>Doctor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-green: #527267;
+            --bg-light: #f8fafc;
+            --border-color: #e2e8f0;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-        }
-
-        .header {
+        body { background-color: var(--bg-light); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        
+        .sidebar-container {
             background: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .header-left h1 {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .header-left p {
-            font-size: 13px;
-            color: #999;
-            margin-top: 2px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .user-info {
-            text-align: right;
-        }
-
-        .user-info p {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-info span {
-            font-size: 12px;
-            color: #999;
-        }
-
-        .logout-btn {
-            background: #1abc9c;
-            color: white;
-            padding: 8px 15px;
             border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .logout-btn:hover {
-            background: #16a085;
-        }
-
-        .container {
+            border-radius: 1.5rem;
+            height: calc(100vh - 120px);
+            overflow: hidden;
             display: flex;
-            gap: 20px;
-            padding: 20px 30px;
-            max-width: 1600px;
-            margin: 0 auto;
+            flex-direction: column;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
-        .sidebar {
-            width: 240px;
-        }
-
-        .main {
-            flex: 1;
-            overflow-y: auto;
-            max-height: calc(100vh - 90px);
-        }
-
-        .patients-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .patients-box h3 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        .patients-count {
-            font-size: 24px;
-            font-weight: bold;
-            color: #1abc9c;
-            margin-bottom: 15px;
-        }
-
-        .search-box {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-bottom: 15px;
-        }
+        .patient-list { overflow-y: auto; flex-grow: 1; }
+        .patient-list::-webkit-scrollbar { width: 6px; }
+        .patient-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
         .patient-item {
-            padding: 12px;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border: none !important;
+            padding: 1rem 1.5rem;
+            transition: all 0.2s;
+            background: transparent;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
-
-        .patient-item:hover {
-            background: #f5f5f5;
-        }
-
+        .patient-item:hover { background-color: #f8fafc; }
         .patient-item.active {
-            border-color: #1abc9c;
-            background: #f0faf8;
-        }
-
-        .patient-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #666;
-        }
-
-        .patient-name {
-            font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 3px;
-        }
-
-        .patient-id {
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 5px;
-        }
-
-        .patient-compliance {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .compliance-bar {
-            width: 100%;
-            height: 4px;
-            background: #e0e0e0;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .compliance-fill {
-            height: 100%;
-            background: #1abc9c;
-            width: 75%;
-        }
-
-        .patient-header {
-            background: #e8f7f4;
-            padding: 15px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .patient-info {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .patient-avatar-large {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: #d0e8e5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            color: #1abc9c;
-        }
-
-        .patient-details h2 {
-            font-size: 18px;
-            margin-bottom: 3px;
-        }
-
-        .patient-details p {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 2px;
-        }
-
-        .guardian-info {
-            text-align: right;
-            font-size: 12px;
-        }
-
-        .guardian-info p {
-            margin: 2px 0;
-        }
-
-        .guardian-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .tab {
-            padding: 15px 0;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            color: #999;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab.active {
-            color: #333;
-            border-bottom-color: #1abc9c;
-        }
-
-        .tab:hover {
-            color: #333;
-        }
-
-        .overview-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .health-grade {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .health-grade-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .grade-label {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .grade-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #1abc9c;
-        }
-
-        .grade-badge {
-            background: #1abc9c;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .grade-text {
-            color: #1abc9c;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-
-        .metric-label {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 10px;
-        }
-
-        .metric-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: #1abc9c;
-        }
-
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        .chart-title {
-            font-weight: 600;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .chart-wrapper {
+            background-color: #f0f4f3 !important;
             position: relative;
-            height: 300px;
+        }
+        .patient-item.active::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 20%;
+            height: 60%;
+            width: 4px;
+            background: var(--primary-green);
+            border-radius: 0 4px 4px 0;
         }
 
-        .action-button {
-            width: 100%;
-            padding: 15px;
-            background: #1abc9c;
-            color: white;
+        .patient-info { font-size: 0.85rem; }
+        .patient-info strong { color: #1f2937; display: block; }
+        .patient-info small { color: #6b7280; display: block; margin-top: 0.25rem; }
+        .compliance-info { font-size: 0.7rem; color: #6b7280; margin-top: 0.5rem; display: flex; justify-content: space-between; }
+        .compliance-bar { height: 4px; background: #e2e8f0; border-radius: 2px; margin-top: 0.35rem; overflow: hidden; }
+        .compliance-bar-fill { height: 100%; background: var(--primary-green); width: 75%; }
+
+        .card { border-radius: 1rem; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .header-avatar { background-color: #f1f5f9; color: var(--primary-green); }
+        
+        .nav-tabs .nav-link {
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--primary-green);
+            border-bottom: 2px solid var(--primary-green);
+            background: transparent;
         }
 
-        .action-button:hover {
-            background: #16a085;
+        .search-input {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
         }
 
-        @media (max-width: 1024px) {
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
+        .health-grade-card { background-color: #f0faf8; border: none !important; }
+        .health-badge { background: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .metric-card { text-align: center; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; color: #1f2937; margin: 0.5rem 0 0.25rem; }
+        .metric-label { font-size: 0.75rem; color: #6b7280; }
+
+        .info-card-header { font-weight: 600; margin-bottom: 1rem; font-size: 0.9rem; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .info-label { color: #6b7280; }
+        .info-value { font-weight: 600; color: #1f2937; }
+
+        .chart-container { position: relative; height: 300px; }
+        
+        .tab-content-container { max-height: calc(100vh - 120px); overflow-y: auto; }
+
+        .activity-item {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+        .activity-item:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-green);
+        }
+        .activity-icon {
+            width: 48px;
+            height: 48px;
+            background-color: #dcfce7;
+            border-radius: 0.5rem;
+            flex-shrink: 0;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-left">
-            <h1>Eye Health Dashboard</h1>
-            <p>Patient monitoring system</p>
-        </div>
-        <div class="header-right">
-            <div class="user-info">
-                <p>{{ auth()->user()->name ?? 'Dr. Martinez' }}</p>
-                <span>Ophthalmologist</span>
-            </div>
-            <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
-                @csrf
-                <button type="submit" class="logout-btn">Sign Out</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="sidebar">
-            <div class="patients-box">
-                <h3>Patients</h3>
-                <div class="patients-count">5</div>
-                <input type="text" class="search-box" placeholder="Search patients...">
-
-                <div class="patient-item active">
-                    <div class="patient-avatar">ER</div>
-                    <div class="patient-name">Emma Rodriguez</div>
-                    <div class="patient-id">ID: PT-20206-001</div>
-                    <div class="patient-compliance">20-20-20 Compliance</div>
-                    <div class="compliance-bar">
-                        <div class="compliance-fill"></div>
-                    </div>
-                    <div style="font-size: 11px; color: #999; margin-top: 3px;">75%</div>
+    <header class="bg-white border-bottom sticky-top z-3">
+        <div class="container-fluid px-4 py-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h1 class="h4 fw-bold mb-0">Eye Health Dashboard</h1>
+                    <p class="text-muted small mb-0">Patient monitoring system</p>
                 </div>
-
-                <div class="patient-item">
-                    <div class="patient-avatar">JD</div>
-                    <div class="patient-name">Juan Dela Cruz</div>
-                    <div class="patient-id">ID: PT-20206-002</div>
-                    <div class="patient-compliance">20-20-20 Compliance</div>
-                    <div class="compliance-bar">
-                        <div class="compliance-fill"></div>
-                    </div>
-                    <div style="font-size: 11px; color: #999; margin-top: 3px;">75%</div>
-                </div>
-
-                <div class="patient-item">
-                    <div class="patient-avatar">DP</div>
-                    <div class="patient-name">Daniel Padilla</div>
-                    <div class="patient-id">ID: PT-20206-003</div>
-                    <div class="patient-compliance">20-20-20 Compliance</div>
-                    <div class="compliance-bar">
-                        <div class="compliance-fill"></div>
-                    </div>
-                    <div style="font-size: 11px; color: #999; margin-top: 3px;">75%</div>
-                </div>
-
-                <div class="patient-item">
-                    <div class="patient-avatar">KB</div>
-                    <div class="patient-name">Kathryn Bernardo</div>
-                    <div class="patient-id">ID: PT-20206-004</div>
-                    <div class="patient-compliance">20-20-20 Compliance</div>
-                    <div class="compliance-bar">
-                        <div class="compliance-fill"></div>
-                    </div>
-                    <div style="font-size: 11px; color: #999; margin-top: 3px;">75%</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="main">
-            <div class="patient-header">
-                <div class="patient-info">
-                    <div class="patient-avatar-large">ER</div>
-                    <div class="patient-details">
-                        <h2>Emma Rodriguez</h2>
-                        <p>D: PT-20206-001</p>
-                    </div>
-                </div>
-                <div class="guardian-info">
-                    <p><strong>Guardian</strong></p>
-                    <p class="guardian-name">Maria Rodriguez</p>
-                    <p>maria@email.com</p>
-                </div>
-            </div>
-
-            <div class="tabs">
-                <div class="tab active">Overview</div>
-                <div class="tab">Activity Log</div>
-            </div>
-
-            <div class="overview-grid">
-                <div class="health-grade">
-                    <div class="health-grade-header">
-                        <div>
-                            <div class="grade-label">Overall Health Grade</div>
-                            <div class="grade-text">Patient is maintaining excellent eye health habits</div>
+                <div class="d-flex align-items-center gap-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle header-avatar d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
+                            {{ strtoupper(substr(auth()->user()->name ?? 'DR', 0, 2)) }}
                         </div>
-                        <div style="text-align: right;">
-                            <div class="grade-badge">Excellent</div>
-                            <div class="grade-value">78%</div>
+                        <div class="d-none d-md-block">
+                            <p class="small fw-semibold mb-0">{{ auth()->user()->name ?? 'Doctor' }}</p>
+                            <p class="text-muted mb-0" style="font-size: 0.7rem;">{{ auth()->user()->specialty ?? 'Ophthalmologist' }}</p>
                         </div>
                     </div>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                        </button>
+                    </form>
                 </div>
             </div>
-
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-label">Duration</div>
-                    <div class="metric-value">2h 15m</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Breaks</div>
-                    <div class="metric-value">12/min</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Distance</div>
-                    <div class="metric-value">52cm</div>
-                </div>
-            </div>
-
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-label">Strain Events (7 days)</div>
-                    <div class="metric-value">3</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Blink Rate & Viewing Distance</div>
-                    <div class="metric-value" style="color: #1abc9c;">Good</div>
-                </div>
-                <div></div>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-title">7-Day Compliance Trends - Blink Rate & Viewing Distance</div>
-                <div class="chart-wrapper">
-                    <canvas id="trendChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-title">Daily Screen Time & Breaks Taken</div>
-                <div class="chart-wrapper">
-                    <canvas id="screenTimeChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-title">Eye Health Score Trend</div>
-                <div class="chart-wrapper">
-                    <canvas id="healthScoreChart"></canvas>
-                </div>
-            </div>
-
-            <button class="action-button">Send Personalized Health Plan</button>
         </div>
-    </div>
+    </header>
 
+    <main class="container-fluid p-4">
+        <div class="row g-4">
+            <aside class="col-lg-3">
+                <div class="sidebar-container">
+                    <div class="p-4 border-bottom bg-white sticky-top">
+                        <h2 class="h6 fw-bold mb-1">Patients</h2>
+                        <p class="text-muted small mb-3">5 patients today</p>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0 text-muted ps-3"><i class="bi bi-search"></i></span>
+                            <input type="text" id="searchInput" class="form-control search-input border-start-0 ps-0" placeholder="Search patients...">
+                        </div>
+                    </div>
+                    <div class="patient-list list-group list-group-flush">
+                        <button class="list-group-item list-group-item-action patient-item active" onclick="selectPatient(this, 'Emma Rodriguez', 'Maria Rodriguez', 'ER')">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">ER</div>
+                                <div class="patient-info flex-grow-1">
+                                    <strong>Emma Rodriguez</strong>
+                                    <small>Maria Rodriguez</small>
+                                    <div class="compliance-info">
+                                        <span>20-20-20 Compliance</span>
+                                        <span>75%</span>
+                                    </div>
+                                    <div class="compliance-bar">
+                                        <div class="compliance-bar-fill"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                        <button class="list-group-item list-group-item-action patient-item" onclick="selectPatient(this, 'Juan Dela Cruz', 'Juan Sr.', 'JD')">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">JD</div>
+                                <div class="patient-info flex-grow-1">
+                                    <strong>Juan Dela Cruz</strong>
+                                    <small>Juan Sr.</small>
+                                    <div class="compliance-info">
+                                        <span>20-20-20 Compliance</span>
+                                        <span>75%</span>
+                                    </div>
+                                    <div class="compliance-bar">
+                                        <div class="compliance-bar-fill"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                        <button class="list-group-item list-group-item-action patient-item" onclick="selectPatient(this, 'Daniel Padilla', 'Daniel Sr.', 'DP')">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">DP</div>
+                                <div class="patient-info flex-grow-1">
+                                    <strong>Daniel Padilla</strong>
+                                    <small>Daniel Sr.</small>
+                                    <div class="compliance-info">
+                                        <span>20-20-20 Compliance</span>
+                                        <span>75%</span>
+                                    </div>
+                                    <div class="compliance-bar">
+                                        <div class="compliance-bar-fill"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                        <button class="list-group-item list-group-item-action patient-item" onclick="selectPatient(this, 'Kathryn Bernardo', 'Kathryn Sr.', 'KB')">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">KB</div>
+                                <div class="patient-info flex-grow-1">
+                                    <strong>Kathryn Bernardo</strong>
+                                    <small>Kathryn Sr.</small>
+                                    <div class="compliance-info">
+                                        <span>20-20-20 Compliance</span>
+                                        <span>75%</span>
+                                    </div>
+                                    <div class="compliance-bar">
+                                        <div class="compliance-bar-fill"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="col-lg-9">
+                <div class="tab-content-container">
+                    <!-- Patient Header Card -->
+                    <div class="card border-0 mb-4" style="background-color: #f1fcf9;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex gap-3">
+                                    <div id="mainAvatar" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold h2 mb-0" style="width: 64px; height: 64px; background-color: var(--primary-green);">ER</div>
+                                    <div>
+                                        <h3 class="h4 fw-bold mb-1" id="patientName">Emma Rodriguez</h3>
+                                        <span class="badge bg-white text-muted border fw-normal text-dark">PT-2026-001</span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <p class="text-muted small mb-0">Guardian</p>
+                                    <p class="fw-bold mb-0" id="guardianName">Maria Rodriguez</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs border-bottom-0 mb-4 gap-2" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview">Overview</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#activity">Activity Log</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Overview Tab -->
+                        <div class="tab-pane fade show active" id="overview">
+                            <!-- Health Grade Card -->
+                            <div class="card health-grade-card mb-4">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="fw-bold mb-1">Overall Health Grade: Good</h6>
+                                        <p class="text-muted small mb-0">Patient is maintaining excellent eye health habits</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <span class="health-badge">Good</span>
+                                        <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">78%</div>
+                                        <div class="small text-muted">Health Score</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Metrics Grid -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-lg-3">
+                                    <div class="card metric-card">
+                                        <div class="card-body">
+                                            <span class="health-badge">good</span>
+                                            <div class="metric-value">78%</div>
+                                            <div class="metric-label">Eye Health Score</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <div class="card metric-card">
+                                        <div class="card-body">
+                                            <span class="health-badge">good</span>
+                                            <div class="metric-value">2h 15m</div>
+                                            <div class="metric-label">Avg. Daily Screen Time</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <div class="card metric-card">
+                                        <div class="card-body">
+                                            <span class="health-badge">good</span>
+                                            <div class="metric-value">12/min</div>
+                                            <div class="metric-label">Avg. Blink Rate</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <div class="card metric-card">
+                                        <div class="card-body">
+                                            <span class="health-badge">good</span>
+                                            <div class="metric-value">52cm</div>
+                                            <div class="metric-label">Avg. Viewing Distance</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Info Cards -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-lg-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="info-card-header">20-20-20 Rule Compliance</div>
+                                            <div class="info-row">
+                                                <span class="info-label">Breaks taken:</span>
+                                                <span class="info-value">18 / 24</span>
+                                            </div>
+                                            <div class="info-row">
+                                                <span class="info-label">Last 7 days</span>
+                                                <span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="info-card-header">Strain Events (7 days)</div>
+                                            <div class="info-row">
+                                                <span class="info-label">Low blink rate events:</span>
+                                                <span class="info-value">4</span>
+                                            </div>
+                                            <div class="info-row">
+                                                <span class="info-label">Distance violations</span>
+                                                <span class="info-value">3</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts -->
+                            <div class="card mb-4">
+                                <div class="card-header bg-white border-0 py-3">
+                                    <h6 class="fw-bold mb-0">7-Day Compliance Trends - Blink Rate & Viewing Distance</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="complianceChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-white border-0 py-3">
+                                    <h6 class="fw-bold mb-0">Daily Screen Time & Breaks Taken</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="screenTimeChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4">
+                                <div class="card-header bg-white border-0 py-3">
+                                    <h6 class="fw-bold mb-0">Eye Health Score Trend</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="healthScoreChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-light w-100 text-start p-3 border-3" style="border-style: dashed !important; border-color: #e2e8f0 !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Send Recommendations to Patient</span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Activity Tab -->
+                        <div class="tab-pane fade" id="activity">
+                            <h5 class="fw-bold mb-4">Recent Activity</h5>
+                            
+                            <div class="activity-item mb-3">
+                                <div class="d-flex gap-3">
+                                    <div class="activity-icon"></div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 fw-bold" style="color: #1f2937;">Completed 20-20-20 break</p>
+                                        <small class="text-muted">Looked away for 20 seconds</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="activity-item mb-3">
+                                <div class="d-flex gap-3">
+                                    <div class="activity-icon"></div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 fw-bold" style="color: #1f2937;">Low blink rate detected</p>
+                                        <small class="text-muted">Blink rate dropped to 5/min during gaming session</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="activity-item mb-3">
+                                <div class="d-flex gap-3">
+                                    <div class="activity-icon"></div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 fw-bold" style="color: #1f2937;">Viewing distance improved</p>
+                                        <small class="text-muted">Average distance increased from 32cm to 48cm 5 hours ago</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="activity-item mb-4">
+                                <div class="d-flex gap-3">
+                                    <div class="activity-icon"></div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 fw-bold" style="color: #1f2937;">Completed eye exercise</p>
+                                        <small class="text-muted">3 sets of eye rolling exercises</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hidden Activity Items -->
+                            <div id="moreActivityItems" style="display: none;">
+                                <div class="activity-item mb-3">
+                                    <div class="d-flex gap-3">
+                                        <div class="activity-icon"></div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 fw-bold" style="color: #1f2937;">Screen time limit reached</p>
+                                            <small class="text-muted">Daily screen time exceeded 6 hours</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="activity-item mb-3">
+                                    <div class="d-flex gap-3">
+                                        <div class="activity-icon"></div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 fw-bold" style="color: #1f2937;">Eye strain warning</p>
+                                            <small class="text-muted">Continuous screen time without breaks detected</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="activity-item mb-3">
+                                    <div class="d-flex gap-3">
+                                        <div class="activity-icon"></div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 fw-bold" style="color: #1f2937;">Posture corrected</p>
+                                            <small class="text-muted">Viewing distance normalized after adjustment</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="activity-item mb-4">
+                                    <div class="d-flex gap-3">
+                                        <div class="activity-icon"></div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1 fw-bold" style="color: #1f2937;">Health report generated</p>
+                                            <small class="text-muted">Weekly compliance report ready for review</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn w-100 mb-4" id="loadMoreBtn" onclick="toggleMoreActivity()" style="color: var(--primary-green); background-color: #f1fcf9; border: 1px solid #a8e6e0; font-weight: 600;">
+                                Load More Activity
+                            </button>
+
+                            <button class="btn btn-light w-100 text-start p-3 border-3" style="border-style: dashed !important; border-color: #e2e8f0 !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Send Recommendations to Patient</span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 7-Day Compliance Trends
-        const trendCtx = document.getElementById('trendChart').getContext('2d');
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Compliance',
-                    data: [95, 92, 95, 92, 90, 78, 82],
-                    borderColor: '#1abc9c',
-                    backgroundColor: 'rgba(26, 188, 156, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#1abc9c',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { max: 100, min: 0 }
-                }
-            }
-        });
+        function selectPatient(element, name, guardian, initials) {
+            document.querySelectorAll('.patient-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById('patientName').innerText = name;
+            document.getElementById('guardianName').innerText = guardian;
+            document.getElementById('mainAvatar').innerText = initials;
+        }
 
-        // Daily Screen Time & Breaks
-        const screenTimeCtx = document.getElementById('screenTimeChart').getContext('2d');
-        new Chart(screenTimeCtx, {
-            type: 'bar',
+        function toggleMoreActivity() {
+            const moreItems = document.getElementById('moreActivityItems');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            
+            if (moreItems.style.display === 'none') {
+                moreItems.style.display = 'block';
+                loadMoreBtn.textContent = 'Show Less Activity';
+            } else {
+                moreItems.style.display = 'none';
+                loadMoreBtn.textContent = 'Load More Activity';
+            }
+        }
+
+        // Initialize Charts
+        new Chart(document.getElementById('complianceChart').getContext('2d'), {
+            type: 'line',
             data: {
                 labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                 datasets: [
                     {
-                        label: 'work',
-                        data: [6, 7, 8, 6, 7, 2, 1],
-                        backgroundColor: '#1abc9c'
+                        label: 'Blink Rate',
+                        data: [35, 38, 32, 40, 38, 30, 35],
+                        borderColor: '#527267',
+                        backgroundColor: 'rgba(82, 114, 103, 0.05)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#527267'
                     },
                     {
-                        label: 'leisure',
-                        data: [3, 2, 2, 3, 2, 5, 4],
-                        backgroundColor: '#7dd3c0'
+                        label: 'Distance',
+                        data: [45, 48, 50, 47, 49, 55, 52],
+                        borderColor: '#a8e6e0',
+                        backgroundColor: 'rgba(168, 230, 224, 0.05)',
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#a8e6e0',
+                        yAxisID: 'y1'
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' }
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    y: { position: 'left', max: 60 },
+                    y1: { position: 'right', max: 60, grid: { drawOnChartArea: false } }
                 }
             }
         });
 
-        // Eye Health Score Trend
-        const healthScoreCtx = document.getElementById('healthScoreChart').getContext('2d');
-        new Chart(healthScoreCtx, {
+        new Chart(document.getElementById('screenTimeChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    {
+                        label: 'Breaks Taken',
+                        data: [18, 20, 16, 22, 18, 8, 12],
+                        backgroundColor: '#527267',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Screen Time (min)',
+                        data: [120, 140, 130, 150, 120, 60, 90],
+                        backgroundColor: '#a8e6e0',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        new Chart(document.getElementById('healthScoreChart').getContext('2d'), {
             type: 'line',
             data: {
-                labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                 datasets: [{
-                    label: 'Health Score',
-                    data: [75, 76, 76, 76, 77, 77, 78],
-                    borderColor: '#1abc9c',
-                    backgroundColor: 'rgba(26, 188, 156, 0.1)',
-                    tension: 0.4,
+                    label: 'Health Score (%)',
+                    data: [75, 72, 80, 78, 76, 72, 78],
+                    borderColor: '#527267',
+                    backgroundColor: 'rgba(82, 114, 103, 0.05)',
                     fill: true,
+                    tension: 0.4,
                     pointRadius: 5,
-                    pointBackgroundColor: '#1abc9c'
+                    pointBackgroundColor: '#527267',
+                    pointBorderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { max: 100, min: 0 }
-                }
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { min: 0, max: 100, ticks: { stepSize: 25 } } }
             }
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const val = e.target.value.toLowerCase();
+            document.querySelectorAll('.patient-item').forEach(item => {
+                const name = item.innerText.toLowerCase();
+                item.style.display = name.includes(val) ? '' : 'none';
+            });
         });
     </script>
 </body>

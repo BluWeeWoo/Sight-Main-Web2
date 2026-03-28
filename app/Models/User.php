@@ -27,6 +27,8 @@ class User extends Authenticatable
         'clinic',
         'location',
         'status',
+        'specialty',
+        'license_number',
     ];
 
     /**

@@ -20,6 +20,10 @@ Route::prefix('auth')->group(function () {
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
     Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.submit');
 
+    // Signup
+    Route::get('/signup', [AuthController::class, 'showSignup'])->name('signup');
+    Route::post('/signup', [AuthController::class, 'storeSignup'])->name('signup.store');
+
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 });

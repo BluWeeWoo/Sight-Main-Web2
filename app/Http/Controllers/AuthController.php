@@ -79,4 +79,48 @@ class AuthController extends Controller
 
         return redirect()->route('welcome');
     }
+
+    /**
+     * Show the signup form
+     */
+    public function showSignup()
+    {
+        return view('auth.signup');
+    }
+
+    /**
+     * Store new doctor account
+     */
+    public function storeSignup(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'required|string|max:20',
+            'clinic' => 'required|string|max:255',
+            'specialty' => 'required|string|max:255',
+            'license_number' => 'required|string|max:255',
+        ]);
+
+        // Create the user
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'phone' => $validated['phone'],
+            'clinic' => $validated['clinic'],
+            'specialty' => $validated['specialty'],
+            'license_number' => $validated['license_number'],
+            'role' => 'doctor',
+            'status' => 'active',
+            'location' => '', // Can be added in profile completion
+        ]);
+
+        // Auto login the user
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('doctor.dashboard');
+    }
 }

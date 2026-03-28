@@ -3,201 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Login - Lumi</title>
+    <title>Doctor Login - Eye Health Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-green: #527267;
+            --bg-light: #f8fafc;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background-color: var(--bg-light);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 60px 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            max-width: 450px;
-            width: 100%;
-        }
-
-        .logo {
-            width: 60px;
-            height: 60px;
-            background: #1abc9c;
-            border-radius: 12px;
-            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: white;
-            margin: 0 auto 20px;
         }
-
-        h1 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .subtitle {
-            color: #999;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        input {
+        .login-container {
             width: 100%;
-            padding: 12px 15px;
+            max-width: 500px;
+            padding: 1rem;
+        }
+        .login-card {
             border: none;
-            background: #f5f5f5;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
         }
-
-        input:focus {
+        .login-card .card-header {
+            border: none;
+            padding: 2.5rem 2.5rem 1.5rem;
+            background: white;
+            border-radius: 1rem 1rem 0 0;
+        }
+        .login-logo {
+            width: 48px;
+            height: 48px;
+            background-color: var(--primary-green);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .login-card .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        .login-card .card-text {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+        .login-card .card-body {
+            padding: 2.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+        .form-control {
+            border: 2px solid #000;
+            border-radius: 1.5rem;
+            height: 48px;
+            padding: 0 1.25rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        .form-control:focus {
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 0.2rem rgba(82, 114, 103, 0.1);
             outline: none;
-            background: #efefef;
-            box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.1);
         }
-
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 20px 0;
-            font-size: 14px;
+        .password-wrapper {
+            position: relative;
         }
-
-        .checkbox {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .checkbox input[type="checkbox"] {
-            width: auto;
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
             cursor: pointer;
+            padding: 0.5rem;
         }
-
+        .password-toggle:hover {
+            color: #1f2937;
+        }
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+        .form-check {
+            margin: 0;
+        }
+        .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin-top: 0.125rem;
+            cursor: pointer;
+            border: 2px solid #d1d5db;
+        }
+        .form-check-input:checked {
+            background-color: var(--primary-green);
+            border-color: var(--primary-green);
+        }
+        .form-check-label {
+            font-size: 0.875rem;
+            font-weight: normal;
+            color: #1f2937;
+            cursor: pointer;
+            margin: 0;
+        }
         .forgot-password {
-            color: #1abc9c;
+            font-size: 0.875rem;
+            color: var(--primary-green);
             text-decoration: none;
+            font-weight: 500;
         }
-
         .forgot-password:hover {
             text-decoration: underline;
+            color: var(--primary-green);
         }
-
         .btn-signin {
-            width: 100%;
-            padding: 12px;
-            background: #1abc9c;
+            width: 160px;
+            background-color: var(--primary-green);
             color: white;
+            font-weight: 600;
+            border-radius: 1.5rem;
+            padding: 0.75rem 2rem;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
-
         .btn-signin:hover {
-            background: #16a085;
+            background-color: #3f5a52;
+            color: white;
         }
-
-        .signup-link {
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .signup-text {
             text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666;
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: auto;
         }
-
-        .signup-link a {
-            color: #1abc9c;
+        .signup-link {
+            color: var(--primary-green);
             text-decoration: none;
             font-weight: 600;
         }
-
-        .error {
-            color: #e74c3c;
-            font-size: 13px;
-            margin-top: 5px;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #1abc9c;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .back-link:hover {
+        .signup-link:hover {
             text-decoration: underline;
+            color: var(--primary-green);
+        }
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="{{ route('welcome') }}" class="back-link">← Back</a>
-        <div class="logo">E</div>
-        <h1>Welcome Back</h1>
-        <p class="subtitle">Enter your credentials to access your account</p>
-
-        <form action="{{ route('doctor.login.submit') }}" method="POST">
-            @csrf
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" placeholder="name@example.com" required value="{{ old('email') }}">
-                @error('email') <span class="error">{{ $message }}</span> @enderror
+    <div class="login-container">
+        <div class="card login-card">
+            <div class="card-header">
+                <div class="login-logo">E</div>
+                <h1 class="card-title">Welcome Back</h1>
+                <p class="card-text">Enter your credentials to access your account</p>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="••••••••" required>
-                @error('password') <span class="error">{{ $message }}</span> @enderror
-            </div>
+            <div class="card-body">
+                <form action="{{ route('doctor.login.submit') }}" method="POST">
+                    @csrf
 
-            <div class="form-options">
-                <div class="checkbox">
-                    <input type="checkbox" id="remember" name="remember">
-                    <label for="remember" style="margin: 0;font-weight: 400;">Remember me</label>
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @foreach ($errors->all() as $error)
+                                <div>{{ $error }}</div>
+                            @endforeach
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-control @error('email') is-invalid @enderror"
+                            placeholder="name@example.com"
+                            value="{{ old('email') }}"
+                        >
+                        @error('email')
+                            <div class="error-message">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="password-wrapper">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-control @error('password') is-invalid @enderror"
+                                placeholder="••••••••"
+                            >
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword()"
+                            >
+                                <i class="bi bi-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                        @error('password')
+                            <div class="error-message">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="checkbox-wrapper">
+                        <div class="form-check">
+                            <input
+                                type="checkbox"
+                                id="remember"
+                                name="remember"
+                                class="form-check-input"
+                            >
+                            <label class="form-check-label" for="remember">
+                                Remember me
+                            </label>
+                        </div>
+                        <a href="#" class="forgot-password">Forgot Password?</a>
+                    </div>
+
+                <div class="button-container">
+                        <button type="submit" class="btn btn-signin">Sign In</button>
                 </div>
-                <a href="#" class="forgot-password">Forgot Password?</a>
+                </form>
+
+                <div class="signup-text">
+                    Don't have an account?
+                    <a href="{{ route('signup') }}" class="signup-link">Sign up</a>
+                </div>
             </div>
-
-            <button type="submit" class="btn-signin">Sign In</button>
-        </form>
-
-        <div class="signup-link">
-            Don't have an account? <a href="#">Sign up</a>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('bi-eye');
+                eyeIcon.classList.add('bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('bi-eye-slash');
+                eyeIcon.classList.add('bi-eye');
+            }
+        }
+    </script>
 </body>
 </html>

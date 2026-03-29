@@ -12,11 +12,15 @@ Route::get('/', function () {
 
 // Authentication Routes
 Route::prefix('auth')->group(function () {
-    // Doctor Login
+    // Unified Login
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'authenticate'])->name('login.submit');
+
+    // Doctor Login (legacy)
     Route::get('/doctor/login', [AuthController::class, 'showDoctorLogin'])->name('doctor.login');
     Route::post('/doctor/login', [AuthController::class, 'doctorLogin'])->name('doctor.login.submit');
 
-    // Admin Login
+    // Admin Login (legacy)
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
     Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.submit');
 

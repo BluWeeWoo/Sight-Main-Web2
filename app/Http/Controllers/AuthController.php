@@ -11,6 +11,47 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Show the unified login form
+     */
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    /**
+     * Handle unified login - authenticates user and detects role for redirection
+     */
+    public function authenticate(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        // Attempt to authenticate the user without role filter
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            
+            // Get the authenticated user and check their role
+            $user = Auth::user();
+            
+            // Redirect based on user role
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->role === 'doctor') {
+                return redirect()->route('doctor.dashboard');
+            }
+            
+            // Fallback if role is not recognized
+            return redirect()->route('welcome');
+        }
+
+        throw ValidationException::withMessages([
+            'email' => 'The provided credentials do not match our records.',
+        ]);
+    }
+
+    /**
      * Show the doctor login form
      */
     public function showDoctorLogin()

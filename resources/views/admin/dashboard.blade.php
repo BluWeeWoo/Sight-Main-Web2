@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         * {
@@ -872,10 +873,30 @@
                                 <div class="form-group">
                                     <label>Status</label>
                                     <select x-model="editingProfessional.status">
-                                        <option>Active</option>
-                                        <option>Inactive</option>
-                                        <option>Suspended</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="suspended">Suspended</option>
                                     </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <input type="text" x-model="editingProfessional.phone">
+                                </div>
+                                <div class="form-group">
+                                    <label>Clinic</label>
+                                    <input type="text" x-model="editingProfessional.clinic">
+                                </div>
+                                <div class="form-group">
+                                    <label>Location</label>
+                                    <input type="text" x-model="editingProfessional.location">
+                                </div>
+                                <div class="form-group">
+                                    <label>Specialty</label>
+                                    <input type="text" x-model="editingProfessional.specialty">
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label>License Number</label>
+                                    <input type="text" x-model="editingProfessional.license_number">
                                 </div>
                             </div>
                         </div>
@@ -924,7 +945,7 @@
                                         <span 
                                             class="status-badge"
                                             :class="'status-' + pro.status.toLowerCase()"
-                                            x-text="pro.status"
+                                            x-text="capitalizeStatus(pro.status)"
                                         ></span>
                                     </td>
                                     <td>
@@ -1130,6 +1151,7 @@
         function professionalsManager() {
             return {
                 professionals: @json($professionals),
+                csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 filteredProfessionals: @json($professionals),
                 searchTerm: '',
                 filterStatus: 'All',
@@ -1148,53 +1170,102 @@
                 },
 
                 filterProfessionals() {
+                    console.log('Filter called. filterStatus:', this.filterStatus);
+                    console.log('Professionals:', this.professionals);
+                    
                     this.filteredProfessionals = this.professionals.filter((pro) => {
+                        const proStatus = (pro.status || 'active').toLowerCase();
                         const matchesSearch =
-                            pro.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                            pro.email.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                            pro.clinic.toLowerCase().includes(this.searchTerm.toLowerCase());
+                            (pro.name || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                            (pro.email || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                            (pro.clinic || '').toLowerCase().includes(this.searchTerm.toLowerCase());
                         
                         const matchesFilter = 
                             this.filterStatus === 'All' || 
-                            pro.status === this.filterStatus;
+                            proStatus === this.filterStatus.toLowerCase();
+                        
+                        console.log(`Pro: ${pro.name}, Status: ${proStatus}, FilterStatus: ${this.filterStatus}, Matches: ${matchesFilter}`);
                         
                         return matchesSearch && matchesFilter;
                     });
+                    
+                    console.log('Filtered result count:', this.filteredProfessionals.length);
                 },
 
-                addProfessional() {
+                capitalizeStatus(status) {
+                    if (!status) return 'Active';
+                    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+                },
+
+                async addProfessional() {
                     if (!this.newProfessional.name || !this.newProfessional.email || !this.newProfessional.clinic) {
                         alert('Please fill in all required fields');
                         return;
                     }
 
-                    const newPro = {
-                        id: Math.max(...this.professionals.map(p => p.id), 0) + 1,
-                        name: this.newProfessional.name,
-                        email: this.newProfessional.email,
-                        phone: this.newProfessional.phone || '+234 000 000 0000',
-                        location: this.newProfessional.location || 'Lagos, NG',
-                        clinic: this.newProfessional.clinic,
-                        specialty: this.newProfessional.specialty || 'General Practitioner',
-                        license_number: this.newProfessional.license_number || 'LICENSE-2024-001',
-                        patients: 0,
-                        status: 'Active',
-                        last_active: 'Just now',
-                        joined_date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-                    };
+                    try {
+                        const response = await fetch('/admin/professionals', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken
+                            },
+                            body: JSON.stringify(this.newProfessional)
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            // Use the server-returned object (it has the real ID and defaults)
+                            this.professionals.push({
+                                ...data.professional,
+                                patients: 0,
+                                last_active: 'Just now',
+                                status: data.professional.status || 'active',
+                                joined_date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                            });
+                            this.filterProfessionals();
+                            this.resetNewProfessional();
+                            this.showAddModal = false;
+                        } else {
+                            alert(data.message || 'Error adding professional');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('A server error occurred');
+                    }
+                },
 
-                    this.professionals.push(newPro);
-                    this.filterProfessionals();
-                    this.newProfessional = { name: '', email: '', phone: '', specialty: '', clinic: '', license_number: '', location: '' };
-                    this.showAddModal = false;
+                resetNewProfessional() {
+                    this.newProfessional = { 
+                        name: '', email: '', phone: '', specialty: '', 
+                        clinic: '', license_number: '', location: '', 
+                        password: '', password_confirmation: '' 
+                    };
                 },
 
                 editProfessional(pro) {
-                    this.editingProfessional = { ...pro };
+                    // Ensure status is lowercase for the select binding
+                    this.editingProfessional = { ...pro, status: pro.status.toLowerCase() };
                 },
 
-                saveEdit() {
+                async saveEdit() {
                     if (this.editingProfessional) {
+                        try {
+                            const response = await fetch(`/admin/professionals/${this.editingProfessional.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': this.csrfToken
+                                },
+                                body: JSON.stringify(this.editingProfessional)
+                            });
+                            
+                            if (!response.ok) throw new Error('Update failed');
+                        } catch (error) {
+                            alert('Failed to save changes to the server');
+                            return;
+                        }
+
                         const index = this.professionals.findIndex(p => p.id === this.editingProfessional.id);
                         if (index !== -1) {
                             this.professionals[index] = this.editingProfessional;
@@ -1204,9 +1275,21 @@
                     }
                 },
 
-                deleteProfessional(id) {
+                async deleteProfessional(id) {
                     if (confirm('Are you sure you want to delete this professional?')) {
-                        this.professionals = this.professionals.filter(p => p.id !== id);
+                        try {
+                            const response = await fetch(`/admin/professionals/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'X-CSRF-TOKEN': this.csrfToken }
+                            });
+                            
+                            if (!response.ok) throw new Error('Delete failed');
+                            
+                            this.professionals = this.professionals.filter(p => p.id !== id);
+                        } catch (error) {
+                            alert('Failed to delete from server');
+                        }
+                        
                         this.filterProfessionals();
                     }
                 }

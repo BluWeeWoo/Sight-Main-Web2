@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Eye Health Dashboard</title>
+    <title>Sign In - Eye Health Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -190,13 +190,13 @@
     <div class="login-container">
         <div class="card login-card">
             <div class="card-header">
-                <div class="login-logo">A</div>
+                <div class="login-logo">👁️</div>
                 <h1 class="card-title">Welcome Back</h1>
-                <p class="card-text">Enter your credentials to access your account</p>
+                <p class="card-text">Sign in to your account to continue</p>
             </div>
 
             <div class="card-body">
-                <form action="{{ route('admin.login.submit') }}" method="POST">
+                <form action="{{ route('login.submit') }}" method="POST">
                     @csrf
 
                     @if ($errors->any())

@@ -28,7 +28,7 @@ class AdminController extends Controller
                 'specialty' => $professional->specialty ?? 'General Practitioner',
                 'license_number' => $professional->license_number ?? 'LICENSE-2024-001',
                 'patients' => rand(50, 300), // Mock data - replace with actual patient count logic
-                'status' => $professional->status ?? 'Active',
+                'status' => strtolower($professional->status ?? 'active'),
                 'last_active' => '2 hours ago',
                 'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'Jan 15, 2024',
             ];
@@ -92,6 +92,7 @@ class AdminController extends Controller
             'location' => $validated['location'],
             'specialty' => $validated['specialty'],
             'license_number' => $validated['license_number'],
+            'status' => 'active',
         ]);
 
         return response()->json([
@@ -113,6 +114,8 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email,' . $professionalId,
             'phone' => 'required|string',
             'clinic' => 'required|string',
+            'specialty' => 'required|string',
+            'license_number' => 'required|string',
             'location' => 'required|string',
             'status' => 'required|in:active,inactive,suspended',
         ]);
@@ -230,9 +233,9 @@ class AdminController extends Controller
         
         return response()->json([
             'total_professionals' => $professionals->count(),
-            'active_professionals' => $professionals->where('status', 'active')->count(),
+            'active_professionals' => $professionals->filter(fn($p) => strtolower($p->status ?? '') === 'active')->count(),
             'total_patients' => 0, // Placeholder: sum patients once relationship is defined
-            'suspended' => $professionals->where('status', 'suspended')->count(),
+            'suspended' => $professionals->filter(fn($p) => strtolower($p->status ?? '') === 'suspended')->count(),
         ]);
     }
 }

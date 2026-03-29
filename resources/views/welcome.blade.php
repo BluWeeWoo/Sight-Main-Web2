@@ -45,6 +45,7 @@
                 radial-gradient(circle at 90% 50%, rgba(42, 131, 68, 0.2) 0%, transparent 35%),
                 radial-gradient(circle at 50% 50%, #E4FFD8 0%, transparent 60%),
                 radial-gradient(circle at 15% 20%, rgba(251, 207, 232, 0.6) 0%, transparent 20%);
+
                
             display: flex;
             align-items: center;
@@ -76,8 +77,22 @@
             width: 400px;
             height: 400px;
             border-radius: 100%;
-            background: radial-gradient(circle, #def8e4 0%, transparent 50%);
-            z-index: -2;
+            background: radial-gradient(circle, rgba(222, 251, 225, 0.52) 00%, transparent 70%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Glow centered on the Sign In button */
+        .button-glow {
+            position: absolute;
+            bottom: 200px;
+            left: 55%;
+            transform: translate(-50%, 50%);
+            width: 500px;
+            height: 400px;
+            border-radius: 100%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 10%, transparent 70%);
+            z-index: 15;
             pointer-events: none;
         }
 
@@ -230,47 +245,64 @@
            <img src="{{ asset('assets/hello.png') }}" class="mascot-image" alt="hello Mascot" style="width: 100%; height: auto;">
         </div>
 
+        <div class="button-glow"></div>
         <a href="{{ Route::has('login') ? route('login') : '#' }}" class="bottom-pill">Sign In</a>
     </section>
 
-    <div class="container py-5">
+    <div class="container-fluid px-4 px-md-5 py-5">
         <div class="row g-4 mb-5">
             <!-- Large Left Card -->
             <div class="col-md-6">
                 <div class="p-5 rounded-4 h-100 position-relative overflow-hidden" style="background: var(--lumi-mint); display: flex; flex-direction: column; justify-content: center; min-height: 240px;">
                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 500px; height: 500px; background: radial-gradient(circle, rgba(255, 182, 249, 0.7) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
-                    <div class="position-relative" style="z-index: 1;">
-                        <i class="bi bi-people h1 text-success mb-3"></i>
-                        <h4 class="fw-bold">Professional Network</h4>
-                        <p class="text-muted">Connect with verified eye care specialists</p>
+                    <img src="{{ asset('assets/characters.png') }}" alt="LUMI Character" style="width: 550px; height: auto; position: absolute; bottom: 0; left: 0; z-index: 1;">
+                    <div style="position: absolute; top: 3rem; left: 3rem; z-index: 2; text-align: left;">
+                        <h4 class="text-white fw-bold mb-0">Gamified mascot <br> encourages safe <br>screen habits</h4>
                     </div>
                 </div>
             </div>
 
             <!-- Tall Middle Card -->
             <div class="col-md-3">
-                <div class="p-5 rounded-4 h-100" style="background: #527267; display: flex; flex-direction: column; justify-content: center; min-height: 360px;">
-                    <i class="bi bi-star h1 text-danger mb-3"></i>
-                    <h4 class="fw-bold">Premium Features</h4>
-                    <p class="text-muted">Advanced tools for better eye health management</p>
+                <div class="rounded-4 h-100 d-flex align-items-end justify-content-center" style="background: #527267; min-height: 360px;">
+                    <div class="p-4 rounded-4 text-center mb-3" style="background: #ffffffa1; width: 80%;">
+                        <h4 class="fw-bold">SMART ALERTS</h4>
+                        <p class="text-muted mb-0">Gentle reminders when eyes need rest or screen is too close.</p>
+                    </div>
                 </div>
             </div>
 
             <!-- Large Right Card -->
-            <div class="col-md-3">
-                <div class="p-5 rounded-4 h-100" style="background: #E3F2E6; display: flex; flex-direction: column; justify-content: center; min-height: 240px;">
-                    <i class="bi bi-shield-lock h1 text-primary mb-3"></i>
-                    <h5 class="fw-bold">Secure & Safe</h5>
-                    <p class="text-muted">Your health data is encrypted</p>
-                </div>
-            </div>
+           <div class="col-md-3">
+    <div class="p-5 rounded-4 h-100 d-flex align-items-center justify-content-center"
+         style="background:#E3F2E6; min-height:240px;">
+
+        <div style="
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align:center;
+        ">
+            <h6 class="fw-bold mb-2">HOW LUMI WORKS</h6>
+            <p class="text-muted mb-0 small">
+                When unsafe behavior is detected, <br>LUMI gently reminds users to rest, <br>blink, or adjust distance.
+            </p>
         </div>
 
+    </div>
+</div>
+
         <!-- Wide Bottom Card -->
-        <div class="row">
+        <div class="row mt-5">
             <div class="col-12">
-                <div class="rounded-4 text-center overflow-hidden" style="background: #B2C3B5; min-height: 320px;">
-                    <img src="{{ asset('assets/parentsphone.png') }}" alt="Parents" style="width: 50%; height: 320px; object-fit: cover; display: block; margin: 0 auto;">
+                <div class="rounded-4 text-center overflow-hidden position-relative" style="background: #B2C3B5; min-height: 240px;">
+                    <div style="position: absolute; top: 3rem; left: 3rem; z-index: 10;">
+                        <h4 class=" mb-0 text-white">GUARDIAN DASHBOARD</h4>
+                    </div>
+                    <div style="position: absolute; bottom: 3rem; right: 3rem; z-index: 10; text-align: right;">
+                        <p class="text-white mb-0">Parents monitor child's screen habits.</p>
+                        <p class="text-white mb-0">View blink rate, distance, and usage reports.</p>
+                    </div>
+                    <img src="{{ asset('assets/parentsphone.png') }}" alt="Parents" style="width: 50%; height: 240px; object-fit: cover; display: block; margin: 0 auto;">
                 </div>
             </div>
         </div>

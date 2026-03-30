@@ -255,22 +255,28 @@
             <div class="col-md-6">
                 <div class="p-5 rounded-4 h-100 position-relative overflow-hidden" style="background: var(--lumi-mint); display: flex; flex-direction: column; justify-content: center; min-height: 240px;">
                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 500px; height: 500px; background: radial-gradient(circle, rgba(255, 182, 249, 0.7) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
-                    <img src="{{ asset('assets/characters.png') }}" alt="LUMI Character" style="width: 550px; height: auto; position: absolute; bottom: 0; left: 0; z-index: 1;">
+                    <img src="{{ asset('assets/characters.png') }}" alt="LUMI Character" style="width: 680px; height: auto; position: absolute; bottom: 0; left: 0; z-index: 1;">
                     <div style="position: absolute; top: 3rem; left: 3rem; z-index: 2; text-align: left;">
-                        <h4 class="text-white fw-bold mb-0">Gamified mascot <br> encourages safe <br>screen habits</h4>
+                        <h4 class="text-white fw-bold mb-0" style="font-family: 'Poppins', sans-serif;">Gamified mascot <br> encourages safe <br>screen habits</h4>
                     </div>
                 </div>
             </div>
 
             <!-- Tall Middle Card -->
-            <div class="col-md-3">
-                <div class="rounded-4 h-100 d-flex align-items-end justify-content-center" style="background: #527267; min-height: 360px;">
-                    <div class="p-4 rounded-4 text-center mb-3" style="background: #ffffffa1; width: 80%;">
-                        <h4 class="fw-bold">SMART ALERTS</h4>
-                        <p class="text-muted mb-0">Gentle reminders when eyes need rest or screen is too close.</p>
-                    </div>
-                </div>
-            </div>
+          <div class="col-md-3">
+    <div class="rounded-4 h-100 d-flex align-items-end justify-content-center" 
+         style="background: #527267; min-height: 360px;">
+        
+        <div class="p-4 rounded-4 text-start mb-3 d-flex flex-column justify-content-end"
+             style="background: #ffffffa1; width: 80%; height:55%;">
+             
+            <h4 class="fw-semi bold fs-6">SMART ALERTS</h4>
+            <p class="text-muted mb-0">
+                Gentle reminders when eyes need rest or screen is too close.
+            </p>
+        </div>
+    </div>
+</div>
 
             <!-- Large Right Card -->
            <div class="col-md-3">
@@ -278,15 +284,17 @@
          style="background:#E3F2E6; min-height:240px;">
 
         <div style="
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            text-align:center;
-        ">
-            <h6 class="fw-bold mb-2">HOW LUMI WORKS</h6>
-            <p class="text-muted mb-0 small">
-                When unsafe behavior is detected, <br>LUMI gently reminds users to rest, <br>blink, or adjust distance.
-            </p>
-        </div>
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    position: relative;">
+    <h6 class="fw mb-2" style="position: absolute; left: 5rem; top: -3rem;">HOW LUMI WORKS </h6>
+
+    <p class="text-muted mb-0 small"  style=" right: 1rem; top: 0;" >
+        When unsafe behavior is detected, <br>
+        LUMI gently reminds users to rest, <br>
+        blink, or adjust distance.
+    </p>
+</div>
 
     </div>
 </div>
@@ -302,7 +310,7 @@
                         <p class="text-white mb-0">Parents monitor child's screen habits.</p>
                         <p class="text-white mb-0">View blink rate, distance, and usage reports.</p>
                     </div>
-                    <img src="{{ asset('assets/parentsphone.png') }}" alt="Parents" style="width: 50%; height: 240px; object-fit: cover; display: block; margin: 0 auto;">
+                    <img src="{{ asset('assets/parentsphone.png') }}" alt="Parents" style="width: 30%; height: 240px; object-fit: cover; display: block; margin: 0 auto;">
                 </div>
             </div>
         </div>

@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ChildProfile;
-use App\Models\User;
-use App\Models\EyeHealthMetrics;
-use App\Models\VirtualPet;
+use App\Services\MetricsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MobileApiController extends Controller
 {
+    public function __construct(private readonly MetricsService $metricsService)
+    {
+    }
+
     /**
      * POST /api/mobile/child/login
      * Authenticates via login_code to a specific child profile
@@ -22,27 +24,12 @@ class MobileApiController extends Controller
             'device_id' => 'nullable|string',
         ]);
 
-        $child = ChildProfile::where('login_code', $request->login_code)->first();
+        $result = $this->metricsService->loginChild(
+            $request->string('login_code')->toString(),
+            $request->input('device_id')
+        );
 
-        if (!$child) {
-            return response()->json(['message' => 'Invalid login code'], 401);
-        }
-
-        // Update device info
-        if ($request->device_id) {
-            $child->update(['device_id' => $request->device_id]);
-        }
-
-        // Create token for child
-        $childUser = User::find($child->user_id);
-        return response()->json([
-            'message' => 'Child login successful',
-            'child' => [
-                'child_id' => $child->child_id,
-                'name' => $childUser->name ?? 'Child',
-                'birthdate' => $child->birthdate,
-            ]
-        ], 200);
+        return response()->json($result['body'], $result['http_code']);
     }
 
     /**
@@ -60,37 +47,13 @@ class MobileApiController extends Controller
             'metrics.*.timestamp' => 'required|date_format:Y-m-d H:i:s',
         ]);
 
-        $child = ChildProfile::find($child_id);
-        if (!$child) {
-            return response()->json(['message' => 'Child not found'], 404);
-        }
+        $result = $this->metricsService->syncMetrics(
+            (int) $child_id,
+            (int) Auth::id(),
+            $request->input('metrics', [])
+        );
 
-        // Verify auth is the child or their device
-        if (auth()->id() != $child->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $inserted = 0;
-
-        foreach ($request->metrics as $metric) {
-            EyeHealthMetrics::create([
-                'child_id' => $child_id,
-                'avg_blink_rate' => $metric['avg_blink_rate'] ?? null,
-                'avg_distance' => $metric['avg_distance'] ?? null,
-                'strain_events' => $metric['strain_events'] ?? null,
-                'screen_time_minutes' => $metric['screen_time_minutes'] ?? 0,
-                'timestamp' => $metric['timestamp'],
-            ]);
-            $inserted++;
-        }
-
-        // Update last sync
-        $child->update(['last_sync' => now()]);
-
-        return response()->json([
-            'message' => 'Metrics synced successfully',
-            'inserted_records' => $inserted,
-        ], 200);
+        return response()->json($result['body'], $result['http_code']);
     }
 
     /**
@@ -108,52 +71,13 @@ class MobileApiController extends Controller
             'device_timestamp' => 'required|date_format:Y-m-d H:i:s',
         ]);
 
-        $child = ChildProfile::find($child_id);
-        if (!$child) {
-            return response()->json(['message' => 'Child not found'], 404);
-        }
+        $result = $this->metricsService->syncPet(
+            (int) $child_id,
+            (int) Auth::id(),
+            $request->all()
+        );
 
-        // Verify auth
-        if (auth()->id() != $child->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $pet = VirtualPet::where('child_id', $child_id)->first();
-        if (!$pet) {
-            return response()->json(['message' => 'Pet not found'], 404);
-        }
-
-        // Compare timestamps - only update if device data is newer
-        $deviceTimestamp = strtotime($request->device_timestamp);
-        $cloudTimestamp = strtotime($pet->updated_at);
-
-        if ($deviceTimestamp >= $cloudTimestamp) {
-            $pet->update([
-                'xp_points' => $request->xp_points,
-                'currency' => $request->currency,
-                'current_streak_days' => $request->input('current_streak_days', $pet->current_streak_days),
-                'last_streak_date' => $request->input('last_streak_date', $pet->last_streak_date),
-                'pet_state' => $request->input('pet_state', $pet->pet_state),
-                'updated_at' => now(),
-            ]);
-
-            return response()->json([
-                'message' => 'Pet synced successfully',
-                'synced' => true,
-            ], 200);
-        }
-
-        return response()->json([
-            'message' => 'Cloud data is newer, not updating',
-            'synced' => false,
-            'pet' => [
-                'xp_points' => $pet->xp_points,
-                'currency' => $pet->currency,
-                'current_streak_days' => $pet->current_streak_days,
-                'pet_state' => $pet->pet_state,
-                'updated_at' => $pet->updated_at,
-            ],
-        ], 200);
+        return response()->json($result['body'], $result['http_code']);
     }
 
     /**
@@ -166,23 +90,13 @@ class MobileApiController extends Controller
             'calibration_baseline' => 'required|json',
         ]);
 
-        $child = ChildProfile::find($child_id);
-        if (!$child) {
-            return response()->json(['message' => 'Child not found'], 404);
-        }
+        $result = $this->metricsService->syncCalibration(
+            (int) $child_id,
+            (int) Auth::id(),
+            $request->input('calibration_baseline')
+        );
 
-        // Verify auth
-        if (auth()->id() != $child->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $child->update([
-            'calibration_baseline' => $request->calibration_baseline,
-        ]);
-
-        return response()->json([
-            'message' => 'Calibration baseline synced successfully',
-        ], 200);
+        return response()->json($result['body'], $result['http_code']);
     }
 
     /**
@@ -196,21 +110,13 @@ class MobileApiController extends Controller
             'fcm_token' => 'required|string',
         ]);
 
-        $child = ChildProfile::find($request->child_id);
-        if (!$child) {
-            return response()->json(['message' => 'Child not found'], 404);
-        }
+        $result = $this->metricsService->registerFcmToken(
+            (int) $request->input('child_id'),
+            (int) Auth::id(),
+            $request->string('fcm_token')->toString()
+        );
 
-        // Verify auth
-        if (auth()->id() != $child->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $child->update(['fcm_token' => $request->fcm_token]);
-
-        return response()->json([
-            'message' => 'FCM token registered successfully',
-        ], 200);
+        return response()->json($result['body'], $result['http_code']);
     }
 
     /**
@@ -223,22 +129,12 @@ class MobileApiController extends Controller
             'child_id' => 'required|exists:child_profile,child_id',
         ]);
 
-        $child = ChildProfile::find($request->child_id);
-        if (!$child) {
-            return response()->json(['message' => 'Child not found'], 404);
-        }
+        $result = $this->metricsService->devicePing(
+            (int) $request->input('child_id'),
+            (int) Auth::id()
+        );
 
-        // Verify auth
-        if (auth()->id() != $child->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $child->update(['last_sync' => now()]);
-
-        return response()->json([
-            'message' => 'Ping received',
-            'timestamp' => now()->toIso8601String(),
-        ], 200);
+        return response()->json($result['body'], $result['http_code']);
     }
 
     /**
@@ -247,12 +143,8 @@ class MobileApiController extends Controller
      */
     public function getConfig()
     {
-        return response()->json([
-            'minimum_version' => '1.0.0',
-            'latest_version' => '1.0.5',
-            'force_update' => false,
-            'api_version' => '1.0',
-            'server_time' => now()->toIso8601String(),
-        ], 200);
+        $result = $this->metricsService->getConfig();
+
+        return response()->json($result['body'], $result['http_code']);
     }
 }

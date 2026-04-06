@@ -56,7 +56,9 @@ Route::prefix('mobile')->group(function () {
     // Sync endpoints (Authenticated)
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/child/{child_id}/sync/metrics', [MobileApiController::class, 'syncMetrics']);
+        Route::post('/child/{child_id}/sync/metrics/batch', [MobileApiController::class, 'ingestBatchMetrics']);
         Route::put('/child/{child_id}/sync/pet', [MobileApiController::class, 'syncPet']);
+        Route::put('/child/{child_id}/sync/limits', [MobileApiController::class, 'syncSessionLimits']);
         Route::post('/child/{child_id}/sync/calibration', [MobileApiController::class, 'syncCalibration']);
         
         // Device Management

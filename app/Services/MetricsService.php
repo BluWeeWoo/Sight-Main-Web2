@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ChildProfile;
 use App\Models\EyeHealthMetrics;
+use App\Models\SessionLimits;
 use App\Models\User;
 use App\Models\VirtualPet;
 use Illuminate\Support\Carbon;
@@ -63,6 +64,74 @@ class MetricsService
 
         return $this->response('success', 'Metrics synced successfully', [
             'inserted_records' => $inserted,
+        ]);
+    }
+
+    public function ingestBatchMetrics(int $childId, int $authUserId, array $metricsBatch): array
+    {
+        $child = ChildProfile::find($childId);
+
+        if (!$child) {
+            return $this->response('error', 'Child not found', null, ['child_id' => ['Child not found']], 404);
+        }
+
+        if ((int) $child->user_id !== (int) $authUserId) {
+            return $this->response('error', 'Unauthorized', null, ['authorization' => ['Unauthorized']], 403);
+        }
+
+        if (empty($metricsBatch)) {
+            return $this->response('error', 'Metrics batch is empty', null, ['metrics' => ['Metrics batch is empty']], 400);
+        }
+
+        $inserted = 0;
+        $skipped = 0;
+        $records = [];
+
+        // Extract all timestamps to check for existing records
+        $timestamps = array_column($metricsBatch, 'timestamp');
+        $minTimestamp = min($timestamps);
+        $maxTimestamp = max($timestamps);
+
+        // Find existing metrics in the timestamp range for this child
+        $existingMetrics = EyeHealthMetrics::where('child_id', $childId)
+            ->whereBetween('timestamp', [$minTimestamp, $maxTimestamp])
+            ->pluck('timestamp')
+            ->map(fn ($ts) => $ts->toDateTimeString())
+            ->toArray();
+
+        // Process each metric, deduplicating by timestamp
+        foreach ($metricsBatch as $metric) {
+            $timestamp = $metric['timestamp'];
+
+            // Skip if this exact timestamp already exists
+            if (in_array($timestamp, $existingMetrics, true)) {
+                $skipped++;
+                continue;
+            }
+
+            $records[] = [
+                'child_id' => $childId,
+                'avg_blink_rate' => $metric['avg_blink_rate'] ?? null,
+                'avg_distance' => $metric['avg_distance'] ?? null,
+                'strain_events' => $metric['strain_events'] ?? null,
+                'screen_time_minutes' => $metric['screen_time_minutes'] ?? 0,
+                'timestamp' => $timestamp,
+                'created_at' => now(),
+            ];
+        }
+
+        // Bulk insert all new records
+        if (!empty($records)) {
+            EyeHealthMetrics::insert($records);
+            $inserted = count($records);
+        }
+
+        $child->update(['last_sync' => now()]);
+
+        return $this->response('success', 'Batch metrics ingested successfully', [
+            'inserted_records' => $inserted,
+            'skipped_duplicates' => $skipped,
+            'total_processed' => count($metricsBatch),
         ]);
     }
 
@@ -138,6 +207,66 @@ class MetricsService
         ]);
 
         return $this->response('success', 'Calibration baseline synced successfully');
+    }
+
+    public function syncSessionLimits(int $childId, int $authUserId, array $payload): array
+    {
+        $child = ChildProfile::find($childId);
+
+        if (!$child) {
+            return $this->response('error', 'Child not found', null, ['child_id' => ['Child not found']], 404);
+        }
+
+        if ((int) $child->user_id !== (int) $authUserId) {
+            return $this->response('error', 'Unauthorized', null, ['authorization' => ['Unauthorized']], 403);
+        }
+
+        $limits = SessionLimits::where('child_id', $childId)->first();
+
+        if (!$limits) {
+            return $this->response('error', 'Session limits not found', null, ['session_limits' => ['Session limits not found']], 404);
+        }
+
+        // Delta sync: compare device timestamp with server timestamp
+        $deviceTimestamp = Carbon::createFromFormat('Y-m-d H:i:s', $payload['device_timestamp'])->getTimestamp();
+        $cloudTimestamp = $limits->updated_at ? Carbon::parse($limits->updated_at)->getTimestamp() : 0;
+
+        // If device data is newer or equal, accept the update
+        if ($deviceTimestamp >= $cloudTimestamp) {
+            $limits->update([
+                'daily_limit_minutes' => $payload['daily_limit_minutes'] ?? $limits->daily_limit_minutes,
+                'mode' => $payload['mode'] ?? $limits->mode,
+                'harmful_distance_threshold' => $payload['harmful_distance_threshold'] ?? $limits->harmful_distance_threshold,
+                'critical_distance_threshold' => $payload['critical_distance_threshold'] ?? $limits->critical_distance_threshold,
+                'auto_enforce_breaks' => $payload['auto_enforce_breaks'] ?? $limits->auto_enforce_breaks,
+                'updated_at' => now(),
+            ]);
+
+            return $this->response('success', 'Session limits synced successfully', [
+                'synced' => true,
+                'limits' => [
+                    'daily_limit_minutes' => $limits->daily_limit_minutes,
+                    'mode' => $limits->mode,
+                    'harmful_distance_threshold' => $limits->harmful_distance_threshold,
+                    'critical_distance_threshold' => $limits->critical_distance_threshold,
+                    'auto_enforce_breaks' => $limits->auto_enforce_breaks,
+                    'updated_at' => optional($limits->updated_at)->toIso8601String(),
+                ],
+            ]);
+        }
+
+        // Server data is newer: reject mobile update and return current server state
+        return $this->response('success', 'Server data is newer, mobile update rejected', [
+            'synced' => false,
+            'limits' => [
+                'daily_limit_minutes' => $limits->daily_limit_minutes,
+                'mode' => $limits->mode,
+                'harmful_distance_threshold' => $limits->harmful_distance_threshold,
+                'critical_distance_threshold' => $limits->critical_distance_threshold,
+                'auto_enforce_breaks' => $limits->auto_enforce_breaks,
+                'updated_at' => optional($limits->updated_at)->toIso8601String(),
+            ],
+        ]);
     }
 
     public function registerFcmToken(int $childId, int $authUserId, string $fcmToken): array

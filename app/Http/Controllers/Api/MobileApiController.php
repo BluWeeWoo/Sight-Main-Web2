@@ -57,6 +57,30 @@ class MobileApiController extends Controller
     }
 
     /**
+     * POST /api/mobile/child/{child_id}/sync/metrics/batch
+     * Efficiently ingests batched 30-minute metric arrays with deduplication
+     */
+    public function ingestBatchMetrics(Request $request, $child_id)
+    {
+        $request->validate([
+            'metrics' => 'required|array|min:1',
+            'metrics.*.avg_blink_rate' => 'nullable|numeric',
+            'metrics.*.avg_distance' => 'nullable|numeric',
+            'metrics.*.strain_events' => 'nullable|integer',
+            'metrics.*.screen_time_minutes' => 'nullable|integer',
+            'metrics.*.timestamp' => 'required|date_format:Y-m-d H:i:s',
+        ]);
+
+        $result = $this->metricsService->ingestBatchMetrics(
+            (int) $child_id,
+            (int) Auth::id(),
+            $request->input('metrics', [])
+        );
+
+        return response()->json($result['body'], $result['http_code']);
+    }
+
+    /**
      * PUT /api/mobile/child/{child_id}/sync/pet
      * Backs up virtual pet progress with timestamp comparison
      */
@@ -132,6 +156,30 @@ class MobileApiController extends Controller
         $result = $this->metricsService->devicePing(
             (int) $request->input('child_id'),
             (int) Auth::id()
+        );
+
+        return response()->json($result['body'], $result['http_code']);
+    }
+
+    /**
+     * PUT /api/mobile/child/{child_id}/sync/limits
+     * Delta sync of session limits with conflict resolution
+     */
+    public function syncSessionLimits(Request $request, $child_id)
+    {
+        $request->validate([
+            'daily_limit_minutes' => 'nullable|integer|min:1|max:1440',
+            'mode' => 'nullable|in:Strict,Relaxed',
+            'harmful_distance_threshold' => 'nullable|numeric|min:1|max:100',
+            'critical_distance_threshold' => 'nullable|numeric|min:1|max:100',
+            'auto_enforce_breaks' => 'nullable|boolean',
+            'device_timestamp' => 'required|date_format:Y-m-d H:i:s',
+        ]);
+
+        $result = $this->metricsService->syncSessionLimits(
+            (int) $child_id,
+            (int) Auth::id(),
+            $request->all()
         );
 
         return response()->json($result['body'], $result['http_code']);

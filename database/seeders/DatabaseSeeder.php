@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@lumi.com'],
             [
                 'name' => 'Admin User',
-                'password' => Hash::make('password123'),
+                'password_hash' => Hash::make('password123'),
                 'role' => 'admin',
                 'phone' => '+234123456789',
                 'status' => 'active',
@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'doctor@lumi.com'],
             [
                 'name' => 'Dr. Martinez',
-                'password' => Hash::make('password123'),
+                'password_hash' => Hash::make('password123'),
                 'role' => 'doctor',
                 'phone' => '+234987654321',
                 'clinic' => 'Martha Eye Center',
@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'doctor2@lumi.com'],
             [
                 'name' => 'Dr. Sarah Smith',
-                'password' => Hash::make('password123'),
+                'password_hash' => Hash::make('password123'),
                 'role' => 'doctor',
                 'phone' => '+234111222333',
                 'clinic' => 'Central Medical',

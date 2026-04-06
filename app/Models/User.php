@@ -14,6 +14,16 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * The table associated with the model.
+     */
+    protected $table = 'user';
+
+    /**
+     * The primary key for the model.
+     */
+    protected $primaryKey = 'user_id';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -21,7 +31,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'password',
+        'password_hash',
         'role',
         'phone',
         'clinic',
@@ -29,6 +39,10 @@ class User extends Authenticatable
         'status',
         'specialty',
         'license_number',
+        'images',
+        'failed_login_attempts',
+        'locked_until',
+        'email_verified_at',
     ];
 
     /**
@@ -37,7 +51,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password',
+        'password_hash',
         'remember_token',
     ];
 
@@ -50,8 +64,18 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'locked_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the password hash key.
+     *
+     * @return string
+     */
+    public function getAuthPasswordName()
+    {
+        return 'password_hash';
     }
 
     /**

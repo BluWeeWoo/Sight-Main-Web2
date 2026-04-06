@@ -50,6 +50,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/professionals', [AdminController::class, 'addProfessional']);
     Route::put('/professionals/{id}', [AdminController::class, 'editProfessional']);
     Route::delete('/professionals/{id}', [AdminController::class, 'deleteProfessional']);
+    Route::post('/professionals/{id}/toggle-verification', [AdminController::class, 'toggleVerification']);
+    Route::post('/users/{id}/toggle-status', [AdminController::class, 'toggleUserStatus']);
 
     // Settings
     Route::post('/settings', [AdminController::class, 'updateSettings']);

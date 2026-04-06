@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Doctor Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -151,77 +152,42 @@
                 <div class="sidebar-container">
                     <div class="p-4 border-bottom bg-white sticky-top">
                         <h2 class="h6 fw-bold mb-1">Patients</h2>
-                        <p class="text-muted small mb-3">5 patients today</p>
+                        <p class="text-muted small mb-3">{{ count($patients) }} patient{{ count($patients) !== 1 ? 's' : '' }}</p>
                         <div class="input-group">
                             <span class="input-group-text bg-transparent border-end-0 text-muted ps-3"><i class="bi bi-search"></i></span>
                             <input type="text" id="searchInput" class="form-control search-input border-start-0 ps-0" placeholder="Search patients...">
                         </div>
                     </div>
                     <div class="patient-list list-group list-group-flush">
-                        <button class="list-group-item list-group-item-action patient-item active" onclick="selectPatient(this, 'Emma Rodriguez', 'Maria Rodriguez', 'ER')">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">ER</div>
-                                <div class="patient-info flex-grow-1">
-                                    <strong>Emma Rodriguez</strong>
-                                    <small>Maria Rodriguez</small>
-                                    <div class="compliance-info">
-                                        <span>20-20-20 Compliance</span>
-                                        <span>75%</span>
+                        @if(count($patients) > 0)
+                            @foreach($patients as $index => $patient)
+                                @php
+                                    $initials = strtoupper(substr($patient['name'], 0, 1)) . strtoupper(substr(strrchr($patient['name'], ' '), 1, 1));
+                                @endphp
+                                <button class="list-group-item list-group-item-action patient-item {{ $index === 0 ? 'active' : '' }}" onclick="selectPatient(this, '{{ $patient['name'] }}', '{{ $patient['guardian'] ?? 'Unknown Guardian' }}', '{{ $initials }}')">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">{{ $initials }}</div>
+                                        <div class="patient-info flex-grow-1">
+                                            <strong>{{ $patient['name'] }}</strong>
+                                            <small>{{ $patient['guardian'] ?? 'Unknown Guardian' }}</small>
+                                            <div class="compliance-info">
+                                                <span>20-20-20 Compliance</span>
+                                                <span>--%</span>
+                                            </div>
+                                            <div class="compliance-bar">
+                                                <div class="compliance-bar-fill"></div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="compliance-bar">
-                                        <div class="compliance-bar-fill"></div>
-                                    </div>
+                                </button>
+                            @endforeach
+                        @else
+                            <div class="p-4 text-center text-muted" style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+                                <div>
+                                    <p class="mb-0">No patients assigned yet</p>
                                 </div>
                             </div>
-                        </button>
-                        <button class="list-group-item list-group-item-action patient-item" onclick="selectPatient(this, 'Juan Dela Cruz', 'Juan Sr.', 'JD')">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">JD</div>
-                                <div class="patient-info flex-grow-1">
-                                    <strong>Juan Dela Cruz</strong>
-                                    <small>Juan Sr.</small>
-                                    <div class="compliance-info">
-                                        <span>20-20-20 Compliance</span>
-                                        <span>75%</span>
-                                    </div>
-                                    <div class="compliance-bar">
-                                        <div class="compliance-bar-fill"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-                        <button class="list-group-item list-group-item-action patient-item" onclick="selectPatient(this, 'Daniel Padilla', 'Daniel Sr.', 'DP')">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">DP</div>
-                                <div class="patient-info flex-grow-1">
-                                    <strong>Daniel Padilla</strong>
-                                    <small>Daniel Sr.</small>
-                                    <div class="compliance-info">
-                                        <span>20-20-20 Compliance</span>
-                                        <span>75%</span>
-                                    </div>
-                                    <div class="compliance-bar">
-                                        <div class="compliance-bar-fill"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-                        <button class="list-group-item list-group-item-action patient-item" onclick="selectPatient(this, 'Kathryn Bernardo', 'Kathryn Sr.', 'KB')">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; background-color: var(--primary-green); flex-shrink: 0;">KB</div>
-                                <div class="patient-info flex-grow-1">
-                                    <strong>Kathryn Bernardo</strong>
-                                    <small>Kathryn Sr.</small>
-                                    <div class="compliance-info">
-                                        <span>20-20-20 Compliance</span>
-                                        <span>75%</span>
-                                    </div>
-                                    <div class="compliance-bar">
-                                        <div class="compliance-bar-fill"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
+                        @endif
                     </div>
                 </div>
             </aside>
@@ -233,19 +199,29 @@
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="d-flex gap-3">
-                                    <div id="mainAvatar" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold h2 mb-0" style="width: 64px; height: 64px; background-color: var(--primary-green);">ER</div>
+                                    @php
+                                        $firstPatient = count($patients) > 0 ? $patients[0] : null;
+                                        $patientInitials = $firstPatient ? strtoupper(substr($firstPatient['name'], 0, 1)) . strtoupper(substr(strrchr($firstPatient['name'], ' '), 1, 1)) : 'N/A';
+                                        $patientName = $firstPatient ? $firstPatient['name'] : 'Select a Patient';
+                                        $patientId = $firstPatient ? $firstPatient['id'] : null;
+                                    @endphp
+                                    <div id="mainAvatar" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold h2 mb-0" style="width: 64px; height: 64px; background-color: var(--primary-green);">{{ $patientInitials }}</div>
                                     <div>
-                                        <h3 class="h4 fw-bold mb-1" id="patientName">Emma Rodriguez</h3>
-                                        <span class="badge bg-white text-muted border fw-normal text-dark">PT-2026-001</span>
+                                        <h3 class="h4 fw-bold mb-1" id="patientName">{{ $patientName }}</h3>
+                                        @if($patientId)
+                                            <span class="badge bg-white text-muted border fw-normal text-dark">PT-2026-{{ str_pad($patientId, 3, '0', STR_PAD_LEFT) }}</span>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="text-end">
                                     <p class="text-muted small mb-0">Guardian</p>
-                                    <p class="fw-bold mb-0" id="guardianName">Maria Rodriguez</p>
+                                    <p class="fw-bold mb-0" id="guardianName">{{ $firstPatient ? ($firstPatient['guardian'] ?? 'Unknown') : 'N/A' }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    @include('doctor.components.pending-requests-panel')
 
                     <!-- Tabs -->
                     <ul class="nav nav-tabs border-bottom-0 mb-4 gap-2" role="tablist">

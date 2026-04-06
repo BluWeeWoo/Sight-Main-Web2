@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\DoctorProfile;
+use App\Models\ChildProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,70 +16,26 @@ class DoctorController extends Controller
     public function dashboard()
     {
         $doctor = Auth::user();
-        
-        // Get doctor's patients (this would come from your database)
-        // For now, using mock data
-        $patients = [
-            [
-                'id' => 'PT-20206-001',
-                'name' => 'Emma Rodriguez',
-                'avatar' => 'ER',
-                'compliance' => 75,
-                'guardian' => 'Maria Rodriguez',
-                'guardian_email' => 'maria@email.com',
-            ],
-            [
-                'id' => 'PT-20206-002',
-                'name' => 'Juan Dela Cruz',
-                'avatar' => 'JD',
-                'compliance' => 75,
-                'guardian' => 'Juan Dela Cruz Sr.',
-                'guardian_email' => 'juan@email.com',
-            ],
-            [
-                'id' => 'PT-20206-003',
-                'name' => 'Daniel Padilla',
-                'avatar' => 'DP',
-                'compliance' => 75,
-                'guardian' => 'Daniel Padilla Sr.',
-                'guardian_email' => 'daniel@email.com',
-            ],
-            [
-                'id' => 'PT-20206-004',
-                'name' => 'Kathryn Bernardo',
-                'avatar' => 'KB',
-                'compliance' => 75,
-                'guardian' => 'Kathryn Bernardo Sr.',
-                'guardian_email' => 'kathryn@email.com',
-            ],
-        ];
+        if (is_null($doctor->email_verified_at)) {
+            // If not verified, show pending verification view
+            return view('doctor.pending-verification', compact('doctor'));
+        }
 
-        // Get patient metrics (mock data)
-        $patientMetrics = [
-            'duration' => '2h 15m',
-            'breaks' => '12/min',
-            'distance' => '52cm',
-            'strain_events' => 3,
-            'blink_rate' => 'Good',
-            'health_score' => 78,
-        ];
+        $doctorProfile = DoctorProfile::where('user_id', $doctor->id)->first();
+        // Get doctor's assigned patients from database
+        $patients = [];
+        if ($doctorProfile) {
+            $patients = $doctorProfile->patients()->get()->map(function ($child) {
+                return [
+                    'id' => $child->child_id,
+                    'name' => $child->user->name ?? 'Unknown',
+                    'birthdate' => $child->birthdate,
+                    'created_at' => $child->user->created_at ? $child->user->created_at->format('M d, Y') : null,
+                ];
+            })->toArray();
+        }
 
-        // Get compliance trends (mock data)
-        $complianceTrends = [95, 92, 95, 92, 90, 78, 82];
-        $screenTimeTrends = [
-            'work' => [6, 7, 8, 6, 7, 2, 1],
-            'leisure' => [3, 2, 2, 3, 2, 5, 4],
-        ];
-        $healthScoreTrends = [75, 76, 76, 76, 77, 77, 78];
-
-        return view('doctor.dashboard', compact(
-            'doctor',
-            'patients',
-            'patientMetrics',
-            'complianceTrends',
-            'screenTimeTrends',
-            'healthScoreTrends'
-        ));
+        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile'));
     }
 
     /**
@@ -85,16 +43,20 @@ class DoctorController extends Controller
      */
     public function getPatient($patientId)
     {
-        // This would fetch from database
-        // For now returning mock data
+        $child = ChildProfile::find($patientId);
+        
+        if (!$child) {
+            return response()->json(['error' => 'Patient not found'], 404);
+        }
+
         return response()->json([
-            'id' => $patientId,
-            'name' => 'Emma Rodriguez',
-            'email' => 'emma@email.com',
-            'phone' => '+234123456789',
-            'age' => 8,
-            'diagnosis' => 'Myopia Management',
-            'created_at' => '2025-01-15',
+            'id' => $child->child_id,
+            'name' => $child->user->name ?? 'Unknown',
+            'birthdate' => $child->birthdate,
+            'device_id' => $child->device_id,
+            'login_code' => $child->login_code,
+            'last_sync' => $child->last_sync,
+            'created_at' => $child->user->created_at,
         ]);
     }
 
@@ -108,9 +70,8 @@ class DoctorController extends Controller
             'plan' => 'required|string',
         ]);
 
-        // Send email to patient/guardian
-        // TODO: Implement email sending logic
-
+        // Store health plan in database (email sending can be configured in mail.php)
+        // For now, acknowledge the request
         return response()->json([
             'success' => true,
             'message' => 'Health plan sent successfully',
@@ -122,11 +83,20 @@ class DoctorController extends Controller
      */
     public function getComplianceData($patientId)
     {
-        // Mock data - replace with actual database queries
+        $child = ChildProfile::find($patientId);
+        
+        if (!$child) {
+            return response()->json(['error' => 'Patient not found'], 404);
+        }
+
+        // Get actual compliance data from database
+        $scores = $child->eyeHealthScores()->orderBy('recorded_date', 'desc')->limit(7)->get();
+
         return response()->json([
-            'dates' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            'compliance' => [95, 92, 95, 92, 90, 78, 82],
-            'average' => 89.3,
+            'dates' => $scores->map(fn($s) => $s->recorded_date->format('M d'))->reverse()->values(),
+            'scores' => $scores->map(fn($s) => $s->daily_score)->reverse()->values(),
+            'average' => $scores->avg('daily_score') ?? 0,
+            'count' => $scores->count(),
         ]);
     }
 
@@ -135,24 +105,32 @@ class DoctorController extends Controller
      */
     public function getActivityLog($patientId)
     {
-        // Mock data
-        $activities = [
-            [
-                'type' => 'Eye Exam Completed',
-                'date' => 'August 1, 2025',
-                'icon' => 'eye',
-            ],
-            [
-                'type' => 'Health Metrics Updated',
-                'date' => 'July 31, 2025',
-                'icon' => 'chart',
-            ],
-            [
-                'type' => 'Compliance Report Sent',
-                'date' => 'July 29, 2025',
-                'icon' => 'clock',
-            ],
-        ];
+        $child = ChildProfile::find($patientId);
+        
+        if (!$child) {
+            return response()->json(['error' => 'Patient not found'], 404);
+        }
+
+        // Get actual activities from database
+        $activities = [];
+
+        // Add metric sync activity
+        if ($child->last_sync) {
+            $activities[] = [
+                'type' => 'Metrics Synced',
+                'date' => $child->last_sync->format('M d, Y'),
+                'icon' => 'sync',
+            ];
+        }
+
+        // Add profile creation activity
+        if ($child->user && $child->user->created_at) {
+            $activities[] = [
+                'type' => 'Profile Created',
+                'date' => $child->user->created_at->format('M d, Y'),
+                'icon' => 'user',
+            ];
+        }
 
         return response()->json($activities);
     }

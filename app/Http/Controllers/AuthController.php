@@ -35,10 +35,18 @@ class AuthController extends Controller
             // Get the authenticated user and check their role
             $user = Auth::user();
             
-            // Redirect based on user role
-            if ($user->role === 'admin') {
+            // Check verification status
+            if (is_null($user->email_verified_at)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                return redirect()->route('welcome')->with('info', 'Your account is pending verification by an administrator.');
+            }
+
+            // Redirect based on user role (case-insensitive)
+            $role = strtolower($user->role);
+            if ($role === 'admin') {
                 return redirect()->route('admin.dashboard');
-            } elseif ($user->role === 'doctor') {
+            } elseif ($role === 'doctor') {
                 return redirect()->route('doctor.dashboard');
             }
             
@@ -136,7 +144,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email|unique:user,email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'required|string|max:20',
             'clinic' => 'required|string|max:255',
@@ -148,20 +156,17 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password_hash' => Hash::make($validated['password']),
             'phone' => $validated['phone'],
             'clinic' => $validated['clinic'],
             'specialty' => $validated['specialty'],
             'license_number' => $validated['license_number'],
             'role' => 'doctor',
             'status' => 'active',
+            'email_verified_at' => null, // Start as unverified
             'location' => '', // Can be added in profile completion
         ]);
 
-        // Auto login the user
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('doctor.dashboard');
+        return redirect()->route('welcome')->with('info', 'Account created! Please wait for an administrator to verify your credentials.');
     }
 }

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\ChildProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -15,40 +17,45 @@ class AdminController extends Controller
     public function dashboard()
     {
         $admin = Auth::user();
+        if (is_null($admin->email_verified_at)) {
+            // If not verified, show pending verification view
+            return view('admin.pending-verification', compact('admin'));
+        }
 
         // Get professionals/doctors from database
         $professionals = User::where('role', 'doctor')->get()->map(function ($professional) {
+            // Only get real data from database, no mock fallbacks
             return [
-                'id' => $professional->id,
+                'id' => $professional->user_id,
                 'name' => $professional->name,
                 'email' => $professional->email,
-                'phone' => $professional->phone ?? '+234 000 000 0000',
-                'location' => $professional->location ?? 'Lagos, NG',
-                'clinic' => $professional->clinic ?? 'N/A',
-                'specialty' => $professional->specialty ?? 'General Practitioner',
-                'license_number' => $professional->license_number ?? 'LICENSE-2024-001',
-                'patients' => rand(50, 300), // Mock data - replace with actual patient count logic
+                'phone' => $professional->phone,
+                'location' => $professional->location,
+                'clinic' => $professional->clinic,
+                'specialty' => $professional->specialty,
+                'license_number' => $professional->license_number,
+                'is_verified' => !is_null($professional->email_verified_at),
                 'status' => strtolower($professional->status ?? 'active'),
-                'last_active' => '2 hours ago',
-                'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'Jan 15, 2024',
+                'created_at' => $professional->created_at ? $professional->created_at->format('M d, Y') : null,
+                'patients' => 0, // Added for UI consistency
+                'last_active' => 'Never', // Added for UI consistency
+                'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'N/A',
             ];
         })->toArray();
 
-        // Calculate stats
+        // Calculate stats - only from real data
         $stats = [
             'total_professionals' => count($professionals),
             'active_professionals' => count(array_filter($professionals, fn($p) => strtolower($p['status']) === 'active')),
-            'total_patients' => array_sum(array_column($professionals, 'patients')) ?? 0,
-            'suspended' => count(array_filter($professionals, fn($p) => strtolower($p['status']) === 'suspended')),
         ];
 
         // Get other admins
-        $otherAdmins = User::where('role', 'admin')->where('id', '!=', $admin->id)->get()->map(function ($user) {
+        $otherAdmins = User::where('role', 'admin')->where('user_id', '!=', $admin->user_id)->get()->map(function ($user) {
             return [
-                'id' => $user->id,
+                'id' => $user->user_id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'status' => 'Active',
+                'status' => strtolower($user->status ?? 'active'),
             ];
         })->toArray();
 
@@ -73,32 +80,51 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string',
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email|unique:user',
             'phone' => 'required|string',
             'clinic' => 'required|string',
             'specialty' => 'required|string',
             'license_number' => 'required|string',
             'location' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
         ]);
+
+        // Generate a temporary password
+        $tempPassword = Str::random(12);
 
         $professional = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password_hash' => Hash::make($tempPassword),
             'role' => 'doctor',
             'phone' => $validated['phone'],
             'clinic' => $validated['clinic'],
             'location' => $validated['location'],
             'specialty' => $validated['specialty'],
             'license_number' => $validated['license_number'],
-            'status' => 'active',
+            'status' => 'pending',
+            'email_verified_at' => null,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Professional added successfully',
-            'professional' => $professional,
+            'message' => 'Professional added successfully.',
+            'temp_password' => $tempPassword,
+            'professional' => [
+                'id' => $professional->user_id,
+                'name' => $professional->name,
+                'email' => $professional->email,
+                'phone' => $professional->phone,
+                'clinic' => $professional->clinic,
+                'specialty' => $professional->specialty,
+                'license_number' => $professional->license_number,
+                'is_verified' => false,
+                'location' => $professional->location,
+                'status' => 'pending',
+                'patients' => 0,
+                'last_active' => 'Just now',
+                'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : now()->format('M d, Y'),
+                'created_at' => $professional->created_at ? $professional->created_at->format('M d, Y') : now()->format('M d, Y'),
+            ],
         ]);
     }
 
@@ -109,9 +135,11 @@ class AdminController extends Controller
     {
         $professional = User::findOrFail($professionalId);
 
+        $admin = Auth::user();
+
         $validated = $request->validate([
             'name' => 'required|string',
-            'email' => 'required|email|unique:users,email,' . $professionalId,
+            'email' => 'required|email|unique:user,email,' . $professional->user_id . ',user_id',
             'phone' => 'required|string',
             'clinic' => 'required|string',
             'specialty' => 'required|string',
@@ -152,7 +180,7 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $admin->id,
+            'email' => 'required|email|unique:user,email,' . $admin->user_id . ',user_id',
             'phone' => 'nullable|string',
             'current_password' => 'required_with:new_password',
             'new_password' => 'nullable|string|min:8|confirmed',
@@ -160,12 +188,12 @@ class AdminController extends Controller
 
         // Verify current password if changing password
         if ($request->filled('new_password')) {
-            if (!Hash::check($request->current_password, $admin->password)) {
+            if (!Hash::check($request->current_password, $admin->password_hash)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'current_password' => ['The provided password does not match your current password.'],
                 ]);
             }
-            $admin->password = Hash::make($request->new_password);
+            $admin->password_hash = Hash::make($request->new_password);
         }
 
         $admin->name = $validated['name'];
@@ -182,22 +210,29 @@ class AdminController extends Controller
     public function addAdmin(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:user',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
         $admin = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password_hash' => Hash::make($validated['password']),
             'role' => 'admin',
+            'status' => 'active',
+            'email_verified_at' => now(), // Allow immediate login for added admins
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Admin added successfully',
-            'admin' => $admin,
+            'admin' => [
+                'id' => $admin->user_id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'status' => $admin->status,
+            ],
         ]);
     }
 
@@ -234,8 +269,50 @@ class AdminController extends Controller
         return response()->json([
             'total_professionals' => $professionals->count(),
             'active_professionals' => $professionals->filter(fn($p) => strtolower($p->status ?? '') === 'active')->count(),
-            'total_patients' => 0, // Placeholder: sum patients once relationship is defined
+            'total_patients' => ChildProfile::count(),
             'suspended' => $professionals->filter(fn($p) => strtolower($p->status ?? '') === 'suspended')->count(),
+        ]);
+    }
+
+    /**
+     * Toggle user status (active/inactive)
+     */
+    public function toggleUserStatus($userId)
+    {
+        $user = User::findOrFail($userId);
+
+        if ($user->user_id === Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot disable your own account.',
+            ], 422);
+        }
+
+        $user->status = (strtolower($user->status ?? 'active') === 'active') ? 'inactive' : 'active';
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account ' . ($user->status === 'active' ? 'enabled' : 'disabled') . ' successfully.',
+            'status' => $user->status,
+        ]);
+    }
+
+    /**
+     * Toggle professional verification status
+     */
+    public function toggleVerification($userId)
+    {
+        $user = User::findOrFail($userId);
+
+        // Toggle between verified (now) and unverified (null)
+        $user->email_verified_at = $user->email_verified_at ? null : now();
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'is_verified' => !is_null($user->email_verified_at),
+            'message' => $user->email_verified_at ? 'Professional verified successfully.' : 'Verification revoked successfully.',
         ]);
     }
 }

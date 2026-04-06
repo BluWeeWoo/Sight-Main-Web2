@@ -17,10 +17,21 @@ class CheckRole
     public function handle(Request $request, Closure $next, string $role): Response
     {
         if (!Auth::check()) {
-            return redirect()->route('welcome');
+            return redirect()->route('login');
         }
 
-        if (Auth::user()->role !== $role) {
+        $user = Auth::user();
+
+        // Check if account is active
+        if (strtolower($user->status ?? 'active') !== 'active') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->withErrors(['email' => 'Your account has been disabled. Please contact the system administrator.']);
+        }
+
+        // Case-insensitive role comparison
+        if (strtolower($user->role) !== strtolower($role)) {
             abort(403, 'Unauthorized');
         }
 

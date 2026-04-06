@@ -292,6 +292,12 @@
             color: #dc2626;
         }
 
+        .status-pending {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #854d0e;
+        }
+
         .action-buttons {
             display: flex;
             gap: 12px;
@@ -623,6 +629,54 @@
             transition: opacity 0.2s;
         }
 
+        [x-cloak] { display: none !important; }
+
+        /* Verification Slider Styling */
+        .verification-slider {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+        }
+
+        .verification-slider input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .v-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e1;
+            transition: .3s;
+            border-radius: 20px;
+        }
+
+        .v-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .v-slider {
+            background: #527267;
+        }
+
+        input:checked + .v-slider:before {
+            transform: translateX(18px);
+        }
+
         .admin-action:hover {
             opacity: 0.7;
         }
@@ -719,7 +773,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" x-data="professionalsManager()">
         <div class="tabs">
             <div id="tab-indicator" class="tab-indicator"></div>
             <div class="tab active" onclick="showSection(this, 'professionals')">Professionals</div>
@@ -731,7 +785,7 @@
         </div>
 
         <!-- Professionals Section -->
-        <div id="professionals" class="content-section active" x-data="professionalsManager()">
+        <div id="professionals" class="content-section active">
             <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card" style="background-color: #4B6059;">
@@ -916,6 +970,7 @@
                                 <th>Contact</th>
                                 <th>Clinic</th>
                                 <th>Patients</th>
+                                <th>Verified</th>
                                 <th>Status</th>
                                 <th>Last Active</th>
                                 <th>Action</th>
@@ -942,6 +997,12 @@
                                         <span class="patient-badge" x-text="pro.patients"></span>
                                     </td>
                                     <td>
+                                        <label class="verification-slider">
+                                            <input type="checkbox" :checked="pro.is_verified" @change="toggleVerification(pro)">
+                                            <span class="v-slider"></span>
+                                        </label>
+                                    </td>
+                                    <td>
                                         <span 
                                             class="status-badge"
                                             :class="'status-' + pro.status.toLowerCase()"
@@ -958,6 +1019,11 @@
                                                 class="action-btn edit"
                                                 @click="editProfessional(pro)"
                                             >Edit</button>
+                                            <button 
+                                                class="action-btn"
+                                                :class="pro.status === 'active' ? 'delete' : 'edit'"
+                                                @click="toggleStatus(pro, 'doctor')"
+                                                x-text="pro.status === 'active' ? 'Disable' : 'Enable'"></button>
                                             <button 
                                                 class="action-btn delete"
                                                 @click="deleteProfessional(pro.id)"
@@ -1099,29 +1165,64 @@
                         <h3>Other Administrators</h3>
                         <p class="section-subtitle">Manage admin accounts</p>
                         <div class="add-admin-section">
-                            <button type="button" class="add-admin-btn">+ Add Admin</button>
+                            <button type="button" class="add-admin-btn" @click="showAddAdminModal = true">+ Add Admin</button>
                         </div>
                         <div class="admin-list">
-                            @forelse($otherAdmins as $other)
-                            <div class="admin-item">
+                            <template x-for="other in otherAdmins" :key="other.id">
+                                <div class="admin-item">
                                 <div>
-                                    <div class="professional-name">{{ $other['name'] }}</div>
-                                    <div class="admin-email">{{ $other['email'] }}</div>
+                                        <div class="professional-name" x-text="other.name"></div>
+                                        <div class="admin-email" x-text="other.email"></div>
                                 </div>
                                 <div style="display: flex; gap: 10px; align-items: center;">
-                                    <span class="admin-status">{{ $other['status'] }}</span>
-                                    <span class="admin-action" onclick="if(confirm('Remove this admin?')) this.parentElement.parentElement.remove()">🗑</span>
+                                        <span class="status-badge" :class="'status-' + other.status" x-text="capitalizeStatus(other.status)"></span>
+                                        <button class="action-btn" :class="other.status === 'active' ? 'delete' : 'edit'" @click="toggleStatus(other, 'admin')" x-text="other.status === 'active' ? 'Disable' : 'Enable'"></button>
+                                        <button class="admin-action" @click="removeAdmin(other.id)">🗑</button>
                                 </div>
                             </div>
-                            @empty
-                            <p style="text-align: center; color: #9ca3af; padding: 20px;">No other administrators</p>
-                            @endforelse
+                            </template>
+                            <template x-if="otherAdmins.length === 0">
+                                <p style="text-align: center; color: #9ca3af; padding: 20px;">No other administrators</p>
+                            </template>
                         </div>
                     </div>
                 </div>
 
                 <button type="submit" class="save-button">Save All Settings</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Add Admin Modal -->
+    <div class="modal-overlay" :class="{ active: showAddAdminModal }" x-cloak>
+        <div class="modal" @click.away="showAddAdminModal = false">
+            <div class="modal-header">
+                <h3>Add New Administrator</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Full Name</label>
+                        <input type="text" placeholder="John Doe" x-model="newAdmin.name">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Email Address</label>
+                        <input type="email" placeholder="admin@example.com" x-model="newAdmin.email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="••••••••" x-model="newAdmin.password">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" placeholder="••••••••" x-model="newAdmin.password_confirmation">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-save" @click="submitAddAdmin()">Create Admin</button>
+                <button class="btn-secondary" @click="showAddAdminModal = false">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -1151,12 +1252,20 @@
         function professionalsManager() {
             return {
                 professionals: @json($professionals),
+                otherAdmins: @json($otherAdmins),
                 csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 filteredProfessionals: @json($professionals),
                 searchTerm: '',
                 filterStatus: 'All',
                 showAddModal: false,
+                showAddAdminModal: false,
                 editingProfessional: null,
+                newAdmin: {
+                    name: '',
+                    email: '',
+                    password: '',
+                    password_confirmation: ''
+                },
                 newProfessional: {
                     name: '',
                     email: '',
@@ -1208,38 +1317,99 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': this.csrfToken
                             },
                             body: JSON.stringify(this.newProfessional)
                         });
-                        
+
                         const data = await response.json();
-                        if (data.success) {
-                            // Use the server-returned object (it has the real ID and defaults)
-                            this.professionals.push({
-                                ...data.professional,
-                                patients: 0,
-                                last_active: 'Just now',
-                                status: data.professional.status || 'active',
-                                joined_date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                            });
+
+                        if (response.ok && data.success) {
+                            // Dynamically update the local professionals list
+                            this.professionals.push(data.professional);
                             this.filterProfessionals();
-                            this.resetNewProfessional();
+                            
+                            // Close the modal and reset the form
                             this.showAddModal = false;
+                            this.resetNewProfessional();
+                            
+                            alert(`Professional Added Successfully!\n\nEmail: ${data.professional.email}\nTemporary Password: ${data.temp_password}\n\nPlease share these credentials with the professional.`);
                         } else {
-                            alert(data.message || 'Error adding professional');
+                            // Display specific validation or server error messages
+                            let errorMessage = data.message || 'Error adding professional';
+                            if (data.errors) {
+                                errorMessage = Object.values(data.errors).flat().join('\n');
+                            }
+                            alert(errorMessage);
                         }
                     } catch (error) {
-                        console.error('Error:', error);
-                        alert('A server error occurred');
+                        console.error('Submission Error:', error);
+                        alert('Failed to connect to the server. Please check your internet connection or try again.');
+                    }
+                },
+
+                async submitAddAdmin() {
+                    if(!this.newAdmin.name || !this.newAdmin.email || !this.newAdmin.password) {
+                        alert('Please fill in all fields');
+                        return;
+                    }
+                    try {
+                        const response = await fetch('/admin/admin/add', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken
+                            },
+                            body: JSON.stringify(this.newAdmin)
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.otherAdmins.push(data.admin);
+                            this.showAddAdminModal = false;
+                            this.newAdmin = { name: '', email: '', password: '', password_confirmation: '' };
+                            alert('Admin added successfully');
+                        } else {
+                            let msg = data.message || 'Error adding admin';
+                            if (data.errors) {
+                                msg = Object.values(data.errors).flat().join('\n');
+                            }
+                            alert(msg);
+                        }
+                    } catch (e) { alert('Failed to add admin'); }
+                },
+
+                async removeAdmin(id) {
+                    if (!confirm('Are you sure you want to remove this administrator?')) return;
+
+                    try {
+                        const response = await fetch(`/admin/admin/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            this.otherAdmins = this.otherAdmins.filter(a => a.id !== id);
+                            alert('Admin removed successfully');
+                        } else {
+                            alert(data.message || 'Error removing admin');
+                        }
+                    } catch (error) {
+                        console.error('Delete Error:', error);
+                        alert('Failed to remove admin');
                     }
                 },
 
                 resetNewProfessional() {
                     this.newProfessional = { 
                         name: '', email: '', phone: '', specialty: '', 
-                        clinic: '', license_number: '', location: '', 
-                        password: '', password_confirmation: '' 
+                        clinic: '', license_number: '', location: '',
+                        password: '', password_confirmation: ''
                     };
                 },
 
@@ -1291,6 +1461,60 @@
                         }
                         
                         this.filterProfessionals();
+                    }
+                },
+
+                async toggleStatus(user, type) {
+                    const action = user.status === 'active' ? 'disable' : 'enable';
+                    if (!confirm(`Are you sure you want to ${action} this account?`)) return;
+
+                    try {
+                        const response = await fetch(`/admin/users/${user.id}/toggle-status`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            user.status = data.status;
+                            if (type === 'doctor') {
+                                this.filterProfessionals();
+                            }
+                        } else {
+                            alert(data.message);
+                        }
+                    } catch (error) {
+                        console.error('Toggle Error:', error);
+                        alert('Failed to update status');
+                    }
+                },
+
+                async toggleVerification(pro) {
+                    try {
+                        const response = await fetch(`/admin/professionals/${pro.id}/toggle-verification`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            pro.is_verified = data.is_verified;
+                            // Optional: show a small toast notification here
+                        } else {
+                            alert(data.message || 'Failed to update verification');
+                            // Revert checkbox state if failed
+                            pro.is_verified = !pro.is_verified;
+                        }
+                    } catch (error) {
+                        console.error('Verification Error:', error);
+                        alert('A connection error occurred. Please try again.');
                     }
                 }
             };

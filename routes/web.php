@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\GuardianController;
 
 // Welcome page
 Route::get('/', function () {
@@ -60,4 +61,10 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
 
     // Stats
     Route::get('/stats', [AdminController::class, 'getStats']);
+});
+
+// Guardian Routes
+Route::prefix('guardian')->middleware(['auth', 'role:guardian'])->group(function () {
+    Route::get('/children', [GuardianController::class, 'children'])->name('guardian.children');
+    Route::get('/dashboard', [GuardianController::class, 'dashboard'])->name('guardian.dashboard');
 });

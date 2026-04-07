@@ -159,6 +159,32 @@
             background-color: #3f5a52;
             color: white;
         }
+
+        .flash-message {
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .flash-info {
+            background: #eff6ff;
+            color: #1e3a8a;
+            border: 1px solid #bfdbfe;
+        }
+
+        .flash-success {
+            background: #ecfdf5;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .flash-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
         .button-container {
             display: flex;
             justify-content: center;
@@ -198,6 +224,18 @@
             <div class="card-body">
                 <form action="{{ route('login.submit') }}" method="POST">
                     @csrf
+
+                    @if(session('info'))
+                        <div class="flash-message flash-info">{{ session('info') }}</div>
+                    @endif
+
+                    @if(session('success'))
+                        <div class="flash-message flash-success">{{ session('success') }}</div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="flash-message flash-error">{{ session('error') }}</div>
+                    @endif
 
                     @if ($errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -260,7 +298,7 @@
                                 Remember me
                             </label>
                         </div>
-                        <a href="#" class="forgot-password">Forgot Password?</a>
+                        <a href="{{ route('password.request') }}" class="forgot-password">Forgot Password?</a>
                     </div>
 
                 <div class="button-container">

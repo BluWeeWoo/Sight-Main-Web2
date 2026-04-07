@@ -28,7 +28,7 @@ class MetricsService
         return $this->response('success', 'Child login successful', [
             'child' => [
                 'child_id' => $child->child_id,
-                'name' => $childUser->name ?? 'Child',
+                'name' => $childUser->display_name ?? 'Child',
                 'birthdate' => $child->birthdate,
             ],
         ]);

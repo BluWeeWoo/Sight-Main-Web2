@@ -258,7 +258,7 @@
                                 Remember me
                             </label>
                         </div>
-                        <a href="#" class="forgot-password">Forgot Password?</a>
+                        <a href="{{ route('password.request') }}" class="forgot-password">Forgot Password?</a>
                     </div>
 
                 <div class="button-container">

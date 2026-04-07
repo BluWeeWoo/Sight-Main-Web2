@@ -21,14 +21,14 @@ class DoctorController extends Controller
             return view('doctor.pending-verification', compact('doctor'));
         }
 
-        $doctorProfile = DoctorProfile::where('user_id', $doctor->id)->first();
+        $doctorProfile = DoctorProfile::where('user_id', $doctor->user_id)->first();
         // Get doctor's assigned patients from database
         $patients = [];
         if ($doctorProfile) {
             $patients = $doctorProfile->patients()->get()->map(function ($child) {
                 return [
                     'id' => $child->child_id,
-                    'name' => $child->user->name ?? 'Unknown',
+                    'name' => $child->user->display_name ?? 'Unknown',
                     'birthdate' => $child->birthdate,
                     'created_at' => $child->user->created_at ? $child->user->created_at->format('M d, Y') : null,
                 ];
@@ -51,7 +51,7 @@ class DoctorController extends Controller
 
         return response()->json([
             'id' => $child->child_id,
-            'name' => $child->user->name ?? 'Unknown',
+            'name' => $child->user->display_name ?? 'Unknown',
             'birthdate' => $child->birthdate,
             'device_id' => $child->device_id,
             'login_code' => $child->login_code,

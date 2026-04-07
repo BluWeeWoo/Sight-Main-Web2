@@ -128,10 +128,10 @@
                 <div class="d-flex align-items-center gap-4">
                     <div class="d-flex align-items-center gap-3">
                         <div class="rounded-circle header-avatar d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
-                            {{ strtoupper(substr(auth()->user()->name ?? 'DR', 0, 2)) }}
+                            {{ auth()->user()->initials ?? 'DR' }}
                         </div>
                         <div class="d-none d-md-block">
-                            <p class="small fw-semibold mb-0">{{ auth()->user()->name ?? 'Doctor' }}</p>
+                            <p class="small fw-semibold mb-0">{{ auth()->user()->display_name ?? 'Doctor' }}</p>
                             <p class="text-muted mb-0" style="font-size: 0.7rem;">{{ auth()->user()->specialty ?? 'Ophthalmologist' }}</p>
                         </div>
                     </div>

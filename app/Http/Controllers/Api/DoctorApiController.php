@@ -34,7 +34,7 @@ class DoctorApiController extends Controller
                 return [
                     'link_id' => $request->link_id,
                     'child_id' => $request->child_id,
-                    'child_name' => $request->child->user->name ?? 'Unknown',
+                    'child_name' => $request->child->user->display_name ?? 'Unknown',
                     'child_email' => $request->child->user->email ?? 'Unknown',
                     'request_date' => $request->linkage_date ? $request->linkage_date->toDateTimeString() : null,
                     'linkage_date' => $request->linkage_date,
@@ -97,7 +97,7 @@ class DoctorApiController extends Controller
                 return [
                     'link_id' => $link->link_id,
                     'child_id' => $link->child_id,
-                    'name' => $link->child->user->name ?? 'Unknown',
+                    'name' => $link->child->user->display_name ?? 'Unknown',
                     'birthdate' => $link->child->birthdate,
                     'pet_state' => $link->child->pet->pet_state ?? null,
                     'daily_limit' => $link->child->sessionLimits->daily_limit_minutes ?? null,
@@ -164,7 +164,7 @@ class DoctorApiController extends Controller
         // Prepare report data
         $reportData = [
             'child_id' => $child->child_id,
-            'name' => $child->user->name ?? 'Unknown',
+            'name' => $child->user->display_name ?? 'Unknown',
             'birthdate' => $child->birthdate,
             'generated_at' => now()->toDateTimeString(),
             'metrics' => $child->eyeHealthMetrics,

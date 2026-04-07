@@ -29,6 +29,14 @@ Route::prefix('auth')->group(function () {
     Route::get('/signup', [AuthController::class, 'showSignup'])->name('signup');
     Route::post('/signup', [AuthController::class, 'storeSignup'])->name('signup.store');
 
+    // Forgot/Reset Password
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::get('/first-login-password', [AuthController::class, 'showFirstLoginPasswordForm'])->name('password.first.form')->middleware('auth');
+    Route::post('/first-login-password', [AuthController::class, 'updateFirstLoginPassword'])->name('password.first.update')->middleware('auth');
+
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 });

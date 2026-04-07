@@ -11,7 +11,12 @@ class DoctorProfile extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'doctor_id',
         'user_id',
+        'phone',
+        'clinic',
+        'specialty',
+        'location',
         'license_number',
         'is_validated',
     ];

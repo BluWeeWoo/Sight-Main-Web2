@@ -22,7 +22,7 @@
         </div>
 
         <div class="content">
-            <p>Dear <strong>{{ $professional->name }}</strong>,</p>
+            <p>Dear <strong>{{ $professional->display_name }}</strong>,</p>
 
             <p>Your professional account has been successfully created in the Sight Eye Health Management System. Your account details are below:</p>
 

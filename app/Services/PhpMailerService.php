@@ -37,7 +37,7 @@ class PhpMailerService
                     <h1>Verify Your Email</h1>
                 </div>
                 <div class='content'>
-                    <p>Dear <strong>{$professional->name}</strong>,</p>
+                    <p>Dear <strong>{$professional->display_name}</strong>,</p>
                     <p>Your professional account has been created. Please verify your email to activate your account.</p>
                     <div class='credentials'>
                         <div class='credentials-label'>Email Address</div>
@@ -57,7 +57,7 @@ class PhpMailerService
             </div>
         </body>
         </html>";
-        return $this->sendEmail($professional->email, $professional->name, $subject, $htmlBody);
+        return $this->sendEmail($professional->email, $professional->display_name, $subject, $htmlBody);
     }
     protected $mail;
 
@@ -137,7 +137,7 @@ public function sendProfessionalInvitation($professional, $tempPassword)
                 <h1>Account Pending Verification</h1>
             </div>
             <div class='content'>
-                <p>Dear <strong>{$professional->name}</strong>,</p>
+                <p>Dear <strong>{$professional->display_name}</strong>,</p>
                 <p>Your professional account has been created in the Sight Eye Health Management System. However, your email is currently <strong>pending verification</strong> by an administrator.</p>
                 <div class='credentials'>
                     <div class='credentials-label'>Email Address</div>
@@ -154,6 +154,6 @@ public function sendProfessionalInvitation($professional, $tempPassword)
         </div>
     </body>
     </html>";
-    return $this->sendEmail($professional->email, $professional->name, $subject, $htmlBody);
+    return $this->sendEmail($professional->email, $professional->display_name, $subject, $htmlBody);
 }
 }

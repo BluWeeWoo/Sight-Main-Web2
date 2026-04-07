@@ -4,17 +4,104 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\ChildProfile;
+use App\Models\DoctorProfile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class AdminController extends Controller
 {
     /**
+     * Build the base doctors query with optional search/status filters.
+     */
+    private function professionalsQuery(Request $request)
+    {
+        $query = User::whereRaw('LOWER(role) = ?', ['doctor'])->with('doctorProfile');
+
+        $status = strtolower((string) $request->query('status', 'all'));
+        if ($status !== '' && $status !== 'all') {
+            $query->whereRaw('LOWER(status) = ?', [$status]);
+        }
+
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('email', 'like', "%{$search}%");
+
+                if (Schema::hasColumn('user', 'first_name')) {
+                    $q->orWhere('first_name', 'like', "%{$search}%");
+                }
+                if (Schema::hasColumn('user', 'last_name')) {
+                    $q->orWhere('last_name', 'like', "%{$search}%");
+                }
+
+                if (Schema::hasTable('doctor_profile')) {
+                    $q->orWhereExists(function ($sub) use ($search) {
+                        $sub->select(DB::raw(1))
+                            ->from('doctor_profile')
+                            ->whereColumn('doctor_profile.user_id', 'user.user_id');
+
+                        $sub->where(function ($profileWhere) use ($search) {
+                            if (Schema::hasColumn('doctor_profile', 'clinic')) {
+                                $profileWhere->orWhere('doctor_profile.clinic', 'like', "%{$search}%");
+                            }
+                            if (Schema::hasColumn('doctor_profile', 'specialty')) {
+                                $profileWhere->orWhere('doctor_profile.specialty', 'like', "%{$search}%");
+                            }
+                            if (Schema::hasColumn('doctor_profile', 'location')) {
+                                $profileWhere->orWhere('doctor_profile.location', 'like', "%{$search}%");
+                            }
+                            if (Schema::hasColumn('doctor_profile', 'license_number')) {
+                                $profileWhere->orWhere('doctor_profile.license_number', 'like', "%{$search}%");
+                            }
+                            if (Schema::hasColumn('doctor_profile', 'phone')) {
+                                $profileWhere->orWhere('doctor_profile.phone', 'like', "%{$search}%");
+                            }
+                        });
+                    });
+                }
+            });
+        }
+
+        return $query->orderByDesc('created_at')->orderByDesc('user_id');
+    }
+
+    /**
+     * Format a professional row for dashboard API/UI.
+     */
+    private function formatProfessional(User $professional): array
+    {
+        $profile = $professional->doctorProfile;
+
+        return [
+            'id' => $professional->user_id,
+            'name' => $this->displayName($professional),
+            'first_name' => $professional->first_name ?? '',
+            'last_name' => $professional->last_name ?? '',
+            'email' => $professional->email,
+            'phone' => $profile->phone ?? ($professional->phone ?? 'N/A'),
+            'location' => $profile->location ?? ($professional->location ?? 'N/A'),
+            'clinic' => $profile->clinic ?? ($professional->clinic ?? 'N/A'),
+            'specialty' => $profile->specialty ?? ($professional->specialty ?? 'N/A'),
+            'license_number' => $profile->license_number ?? ($professional->license_number ?? 'N/A'),
+            'is_verified' => !is_null($professional->email_verified_at),
+            'status' => strtolower($professional->status ?? 'active'),
+            'created_at' => $professional->created_at ? $professional->created_at->format('M d, Y') : null,
+            'patients' => 0,
+            'last_active' => 'Never',
+            'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'N/A',
+        ];
+    }
+
+    /**
      * Show the admin dashboard
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $admin = Auth::user();
         if (is_null($admin->email_verified_at)) {
@@ -22,55 +109,101 @@ class AdminController extends Controller
             return view('admin.pending-verification', compact('admin'));
         }
 
-        // Get professionals/doctors from database
-        $professionals = User::where('role', 'doctor')->get()->map(function ($professional) {
-            // Only get real data from database, no mock fallbacks
-            return [
-                'id' => $professional->user_id,
-                'name' => $professional->name,
-                'email' => $professional->email,
-                'phone' => $professional->phone,
-                'location' => $professional->location,
-                'clinic' => $professional->clinic,
-                'specialty' => $professional->specialty,
-                'license_number' => $professional->license_number,
-                'is_verified' => !is_null($professional->email_verified_at),
-                'status' => strtolower($professional->status ?? 'active'),
-                'created_at' => $professional->created_at ? $professional->created_at->format('M d, Y') : null,
-                'patients' => 0, // Added for UI consistency
-                'last_active' => 'Never', // Added for UI consistency
-                'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'N/A',
-            ];
-        })->toArray();
+        $perPage = (int) $request->query('per_page', 10);
+        if (!in_array($perPage, [5, 10], true)) {
+            $perPage = 10;
+        }
 
-        // Calculate stats - only from real data
-        $stats = [
-            'total_professionals' => count($professionals),
-            'active_professionals' => count(array_filter($professionals, fn($p) => strtolower($p['status']) === 'active')),
+        $professionalsPaginator = $this->professionalsQuery($request)->paginate($perPage)->withQueryString();
+        $professionals = $professionalsPaginator->getCollection()->map(function ($professional) {
+            return $this->formatProfessional($professional);
+        })->values()->toArray();
+
+        $pagination = [
+            'current_page' => $professionalsPaginator->currentPage(),
+            'last_page' => $professionalsPaginator->lastPage(),
+            'per_page' => $professionalsPaginator->perPage(),
+            'total' => $professionalsPaginator->total(),
+            'from' => $professionalsPaginator->firstItem(),
+            'to' => $professionalsPaginator->lastItem(),
         ];
 
-        // Get other admins
-        $otherAdmins = User::where('role', 'admin')->where('user_id', '!=', $admin->user_id)->get()->map(function ($user) {
+        $doctorQuery = User::whereRaw('LOWER(role) = ?', ['doctor']);
+        $stats = [
+            'total_professionals' => (clone $doctorQuery)->count(),
+            'active_professionals' => (clone $doctorQuery)->whereRaw('LOWER(status) = ?', ['active'])->count(),
+            'total_patients' => ChildProfile::count(),
+            'suspended_professionals' => (clone $doctorQuery)->whereRaw('LOWER(status) = ?', ['suspended'])->count(),
+        ];
+
+        // Get other admins (case-insensitive for mixed legacy values)
+        $otherAdmins = User::whereRaw('LOWER(role) = ?', ['admin'])->where('user_id', '!=', $admin->user_id)->get()->map(function ($user) {
             return [
                 'id' => $user->user_id,
-                'name' => $user->name,
+                'name' => $this->displayName($user),
                 'email' => $user->email,
                 'status' => strtolower($user->status ?? 'active'),
             ];
         })->toArray();
 
-        return view('admin.dashboard', compact('admin', 'professionals', 'stats', 'otherAdmins'));
+        return view('admin.dashboard', compact('admin', 'professionals', 'stats', 'otherAdmins', 'pagination'));
     }
 
     /**
      * Get all professionals
      */
-    public function getProfessionals()
+    public function getProfessionals(Request $request)
     {
-        // Fetch from database
-        $professionals = User::where('role', 'doctor')->get();
+        $perPage = (int) $request->query('per_page', 10);
+        if (!in_array($perPage, [5, 10], true)) {
+            $perPage = 10;
+        }
 
-        return response()->json($professionals);
+        $paginator = $this->professionalsQuery($request)->paginate($perPage);
+        $data = $paginator->getCollection()->map(function ($professional) {
+            return $this->formatProfessional($professional);
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'professionals' => $data,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+        ]);
+    }
+
+    /**
+     * Build a resilient display name across legacy schemas.
+     */
+    private function displayName(User $user): string
+    {
+        $first = trim((string) ($user->first_name ?? ''));
+        $last = trim((string) ($user->last_name ?? ''));
+        $combined = trim($first . ' ' . $last);
+
+        return $combined !== '' ? $combined : 'Unnamed User';
+    }
+
+    /**
+     * Build doctor_profile payload only for columns that exist.
+     */
+    private function buildDoctorProfilePayload(array $input): array
+    {
+        $payload = [];
+
+        foreach ($input as $column => $value) {
+            if (Schema::hasColumn('doctor_profile', $column)) {
+                $payload[$column] = $value;
+            }
+        }
+
+        return $payload;
     }
 
     /**
@@ -79,7 +212,8 @@ class AdminController extends Controller
     public function addProfessional(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:user',
             'phone' => 'required|string',
             'clinic' => 'required|string',
@@ -91,19 +225,61 @@ class AdminController extends Controller
         // Generate a temporary password
         $tempPassword = Str::random(12);
 
-        $professional = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password_hash' => Hash::make($tempPassword),
-            'role' => 'doctor',
-            'phone' => $validated['phone'],
-            'clinic' => $validated['clinic'],
-            'location' => $validated['location'],
-            'specialty' => $validated['specialty'],
-            'license_number' => $validated['license_number'],
-            'status' => 'pending',
-            'email_verified_at' => null,
-        ]);
+        $createData = $this->buildUserPayload(
+            $validated['first_name'],
+            $validated['last_name'],
+            $validated['email'],
+            Hash::make($tempPassword),
+            'Doctor',
+            [
+                'user_id' => $this->nextPrimaryKey('user', 'user_id'),
+                'status' => 'pending',
+                'email_verified_at' => null,
+                'must_change_password' => 1,
+            ]
+        );
+
+        $professional = User::create($createData);
+        if (empty($professional->user_id) && !empty($validated['email'])) {
+            $professional = User::where('email', $validated['email'])->firstOrFail();
+        }
+
+        if (Schema::hasTable('doctor_profile')) {
+            $doctorProfile = DoctorProfile::where('user_id', $professional->user_id)->first();
+            $profilePayload = $this->buildDoctorProfilePayload([
+                'phone' => $validated['phone'],
+                'clinic' => $validated['clinic'],
+                'specialty' => $validated['specialty'],
+                'location' => $validated['location'],
+                'license_number' => $validated['license_number'],
+            ]);
+
+            if ($doctorProfile) {
+                $doctorProfile->fill($profilePayload);
+                $doctorProfile->save();
+            } else {
+                DB::table('doctor_profile')->insert(array_merge([
+                    'doctor_id' => $this->nextPrimaryKey('doctor_profile', 'doctor_id'),
+                    'user_id' => $professional->user_id,
+                ], $profilePayload));
+            }
+        }
+
+        try {
+            Mail::send('emails.professional-account-created', [
+                'name' => $this->displayName($professional),
+                'email' => $professional->email,
+                'tempPassword' => $tempPassword,
+                'loginUrl' => route('login'),
+            ], function ($message) use ($professional) {
+                $message->to($professional->email)->subject('Your SIGHT Professional Account');
+            });
+        } catch (\Throwable $e) {
+            // Do not block account creation if mail fails.
+            logger()->error('Failed to send professional account email: ' . $e->getMessage());
+        }
+
+        $professional->load('doctorProfile');
 
         return response()->json([
             'success' => true,
@@ -111,15 +287,17 @@ class AdminController extends Controller
             'temp_password' => $tempPassword,
             'professional' => [
                 'id' => $professional->user_id,
-                'name' => $professional->name,
+                'name' => $this->displayName($professional),
+                'first_name' => $professional->first_name ?? $validated['first_name'],
+                'last_name' => $professional->last_name ?? $validated['last_name'],
                 'email' => $professional->email,
-                'phone' => $professional->phone,
-                'clinic' => $professional->clinic,
-                'specialty' => $professional->specialty,
-                'license_number' => $professional->license_number,
+                'phone' => $professional->doctorProfile->phone ?? $validated['phone'],
+                'clinic' => $professional->doctorProfile->clinic ?? $validated['clinic'],
+                'specialty' => $professional->doctorProfile->specialty ?? $validated['specialty'],
+                'license_number' => $professional->doctorProfile->license_number ?? $validated['license_number'],
                 'is_verified' => false,
-                'location' => $professional->location,
-                'status' => 'pending',
+                'location' => $professional->doctorProfile->location ?? $validated['location'],
+                'status' => strtolower($professional->status ?? 'pending'),
                 'patients' => 0,
                 'last_active' => 'Just now',
                 'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : now()->format('M d, Y'),
@@ -138,22 +316,73 @@ class AdminController extends Controller
         $admin = Auth::user();
 
         $validated = $request->validate([
-            'name' => 'required|string',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:user,email,' . $professional->user_id . ',user_id',
             'phone' => 'required|string',
             'clinic' => 'required|string',
             'specialty' => 'required|string',
             'license_number' => 'required|string',
             'location' => 'required|string',
-            'status' => 'required|in:active,inactive,suspended',
+            'status' => 'required|in:active,inactive,suspended,pending',
         ]);
 
-        $professional->update($validated);
+        $updateData = $this->buildUserPayload(
+            $validated['first_name'],
+            $validated['last_name'],
+            $validated['email'],
+            null,
+            null,
+            [
+                'status' => $validated['status'],
+            ]
+        );
+
+        $professional->update($updateData);
+
+        if (Schema::hasTable('doctor_profile')) {
+            $doctorProfile = DoctorProfile::where('user_id', $professional->user_id)->first();
+            $profilePayload = $this->buildDoctorProfilePayload([
+                'phone' => $validated['phone'],
+                'clinic' => $validated['clinic'],
+                'specialty' => $validated['specialty'],
+                'location' => $validated['location'],
+                'license_number' => $validated['license_number'],
+            ]);
+
+            if ($doctorProfile) {
+                $doctorProfile->fill($profilePayload);
+                $doctorProfile->save();
+            } else {
+                DB::table('doctor_profile')->insert(array_merge([
+                    'doctor_id' => $this->nextPrimaryKey('doctor_profile', 'doctor_id'),
+                    'user_id' => $professional->user_id,
+                ], $profilePayload));
+            }
+        }
+
+        $professional->load('doctorProfile');
 
         return response()->json([
             'success' => true,
             'message' => 'Professional updated successfully',
-            'professional' => $professional,
+            'professional' => [
+                'id' => $professional->user_id,
+                'name' => $this->displayName($professional),
+                'first_name' => $professional->first_name ?? $validated['first_name'],
+                'last_name' => $professional->last_name ?? $validated['last_name'],
+                'email' => $professional->email,
+                'phone' => $professional->doctorProfile->phone ?? $validated['phone'],
+                'clinic' => $professional->doctorProfile->clinic ?? $validated['clinic'],
+                'specialty' => $professional->doctorProfile->specialty ?? $validated['specialty'],
+                'license_number' => $professional->doctorProfile->license_number ?? $validated['license_number'],
+                'location' => $professional->doctorProfile->location ?? $validated['location'],
+                'status' => strtolower($professional->status ?? $validated['status']),
+                'is_verified' => !is_null($professional->email_verified_at),
+                'patients' => 0,
+                'last_active' => 'Never',
+                'joined_date' => $professional->created_at ? $professional->created_at->format('M d, Y') : 'N/A',
+            ],
         ]);
     }
 
@@ -163,7 +392,22 @@ class AdminController extends Controller
     public function deleteProfessional($professionalId)
     {
         $professional = User::findOrFail($professionalId);
-        $professional->delete();
+
+        DB::transaction(function () use ($professional) {
+            $doctorProfile = Schema::hasTable('doctor_profile')
+                ? DB::table('doctor_profile')->where('user_id', $professional->user_id)->first()
+                : null;
+
+            if ($doctorProfile && Schema::hasTable('clinician_patient_link')) {
+                DB::table('clinician_patient_link')->where('doctor_id', $doctorProfile->doctor_id)->delete();
+            }
+
+            if (Schema::hasTable('doctor_profile')) {
+                DB::table('doctor_profile')->where('user_id', $professional->user_id)->delete();
+            }
+
+            $professional->delete();
+        });
 
         return response()->json([
             'success' => true,
@@ -179,7 +423,8 @@ class AdminController extends Controller
         $admin = Auth::user();
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:user,email,' . $admin->user_id . ',user_id',
             'phone' => 'nullable|string',
             'current_password' => 'required_with:new_password',
@@ -196,9 +441,16 @@ class AdminController extends Controller
             $admin->password_hash = Hash::make($request->new_password);
         }
 
-        $admin->name = $validated['name'];
-        $admin->email = $validated['email'];
-        $admin->phone = $validated['phone'];
+        $adminUpdate = $this->buildUserPayload(
+            $validated['first_name'],
+            $validated['last_name'],
+            $validated['email'],
+            null,
+            null,
+            ['phone' => $validated['phone'] ?? null]
+        );
+
+        $admin->fill($adminUpdate);
         $admin->save();
 
         return redirect()->back()->with('success', 'Settings updated successfully');
@@ -209,31 +461,91 @@ class AdminController extends Controller
      */
     public function addAdmin(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:user',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        $wantsJson = $request->expectsJson() || $request->isJson();
 
-        $admin = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password_hash' => Hash::make($validated['password']),
-            'role' => 'admin',
-            'status' => 'active',
-            'email_verified_at' => now(), // Allow immediate login for added admins
-        ]);
+        try {
+            $validated = $request->validate([
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:user,email',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Admin added successfully',
-            'admin' => [
-                'id' => $admin->user_id,
-                'name' => $admin->name,
-                'email' => $admin->email,
-                'status' => $admin->status,
-            ],
-        ]);
+            $admin = DB::transaction(function () use ($validated) {
+                $createdAdmin = User::create($this->buildUserPayload(
+                    $validated['first_name'],
+                    $validated['last_name'],
+                    $validated['email'],
+                    Hash::make($validated['password']),
+                    'Admin',
+                    [
+                        'user_id' => $this->nextPrimaryKey('user', 'user_id'),
+                        'status' => 'active',
+                        'email_verified_at' => now(),
+                    ]
+                ));
+
+                if (empty($createdAdmin->user_id) && !empty($validated['email'])) {
+                    $createdAdmin = User::where('email', $validated['email'])->firstOrFail();
+                }
+
+                if (Schema::hasTable('admin_profile')) {
+                    $profilePayload = [
+                        'admin_id' => $this->nextPrimaryKey('admin_profile', 'admin_id'),
+                        'user_id' => $createdAdmin->user_id,
+                    ];
+
+                    if (Schema::hasColumn('admin_profile', 'role_level')) {
+                        $profilePayload['role_level'] = 'Admin';
+                    }
+                    if (Schema::hasColumn('admin_profile', 'last_login')) {
+                        $profilePayload['last_login'] = now();
+                    }
+
+                    DB::table('admin_profile')->insert($profilePayload);
+                }
+
+                return $createdAdmin;
+            });
+
+            $payload = [
+                'success' => true,
+                'message' => 'Admin added successfully',
+                'admin' => [
+                    'id' => $admin->user_id,
+                    'name' => $this->displayName($admin),
+                    'first_name' => $admin->first_name ?? $validated['first_name'],
+                    'last_name' => $admin->last_name ?? $validated['last_name'],
+                    'email' => $admin->email,
+                    'status' => strtolower($admin->status ?? 'active'),
+                ],
+            ];
+
+            if ($wantsJson) {
+                return response()->json($payload);
+            }
+
+            return redirect()->back()->with('success', $payload['message']);
+        } catch (ValidationException $e) {
+            if ($wantsJson) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+
+            return redirect()->back()->withErrors($e->errors())->withInput();
+        } catch (\Throwable $e) {
+            if ($wantsJson) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->back()->withErrors(['admin' => $e->getMessage()])->withInput();
+        }
     }
 
     /**
@@ -242,7 +554,7 @@ class AdminController extends Controller
     public function removeAdmin($adminId)
     {
         // Prevent deleting the last admin
-        $adminCount = User::where('role', 'admin')->count();
+        $adminCount = User::whereRaw('LOWER(role) = ?', ['admin'])->count();
         if ($adminCount <= 1) {
             return response()->json([
                 'success' => false,
@@ -251,7 +563,13 @@ class AdminController extends Controller
         }
 
         $admin = User::findOrFail($adminId);
-        $admin->delete();
+
+        DB::transaction(function () use ($admin) {
+            if (Schema::hasTable('admin_profile')) {
+                DB::table('admin_profile')->where('user_id', $admin->user_id)->delete();
+            }
+            $admin->delete();
+        });
 
         return response()->json([
             'success' => true,
@@ -264,7 +582,7 @@ class AdminController extends Controller
      */
     public function getStats()
     {
-        $professionals = User::where('role', 'doctor')->get();
+        $professionals = User::whereRaw('LOWER(role) = ?', ['doctor'])->get();
         
         return response()->json([
             'total_professionals' => $professionals->count(),
@@ -305,6 +623,13 @@ class AdminController extends Controller
     {
         $user = User::findOrFail($userId);
 
+        if (!Schema::hasColumn('user', 'email_verified_at')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Verification column is missing in the current database schema.',
+            ], 422);
+        }
+
         // Toggle between verified (now) and unverified (null)
         $user->email_verified_at = $user->email_verified_at ? null : now();
         $user->save();
@@ -314,5 +639,63 @@ class AdminController extends Controller
             'is_verified' => !is_null($user->email_verified_at),
             'message' => $user->email_verified_at ? 'Professional verified successfully.' : 'Verification revoked successfully.',
         ]);
+    }
+
+    /**
+     * Build a user payload that adapts to legacy/current schema differences.
+     */
+    private function buildUserPayload(?string $firstName, ?string $lastName, ?string $email, ?string $passwordHash, ?string $role, array $extra = []): array
+    {
+        $payload = [];
+
+        if ($email !== null) {
+            $payload['email'] = $email;
+        }
+        if ($passwordHash !== null) {
+            $payload['password_hash'] = $passwordHash;
+        }
+        if ($role !== null) {
+            $payload['role'] = $role;
+        }
+
+        if ($firstName !== null && Schema::hasColumn('user', 'first_name')) {
+            $payload['first_name'] = $firstName;
+        }
+        if ($lastName !== null && Schema::hasColumn('user', 'last_name')) {
+            $payload['last_name'] = $lastName;
+        }
+
+        foreach ($extra as $column => $value) {
+            if (Schema::hasColumn('user', $column)) {
+                $payload[$column] = $value;
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Generate next primary key for schemas without auto-increment.
+     */
+    private function nextPrimaryKey(string $table, string $column): int
+    {
+        $max = DB::table($table)->max($column);
+        return ((int) $max) + 1;
+    }
+
+    /**
+     * Split full name into first/last name for schemas without a single name column.
+     */
+    private function splitName(string $fullName): array
+    {
+        $parts = preg_split('/\s+/', trim($fullName)) ?: [];
+        if (count($parts) <= 1) {
+            return [trim($fullName), trim($fullName) !== '' ? 'N/A' : 'Unknown'];
+        }
+
+        $lastName = array_pop($parts);
+        $firstName = implode(' ', $parts);
+
+        return [$firstName, $lastName];
     }
 }

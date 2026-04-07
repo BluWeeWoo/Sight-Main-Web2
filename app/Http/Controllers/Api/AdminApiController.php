@@ -50,7 +50,8 @@ class AdminApiController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:user,email',
             'license_number' => 'required|string|unique:doctor_profile,license_number',
             'password' => 'required|string|min:8',
@@ -58,7 +59,8 @@ class AdminApiController extends Controller
 
         // Create doctor user
         $user = User::create([
-            'name' => $request->name,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
             'email' => $request->email,
             'password_hash' => Hash::make($request->password),
             'role' => 'Doctor',
@@ -66,7 +68,7 @@ class AdminApiController extends Controller
 
         // Create doctor profile (pre-validated)
         $doctor = DoctorProfile::create([
-            'user_id' => $user->id,
+            'user_id' => $user->user_id,
             'license_number' => $request->license_number,
             'is_validated' => 1, // Admin-created doctors are automatically validated
         ]);
@@ -75,8 +77,10 @@ class AdminApiController extends Controller
             'message' => 'Professional account created successfully',
             'doctor' => [
                 'doctor_id' => $doctor->doctor_id,
-                'user_id' => $user->id,
-                'name' => $user->name,
+                'user_id' => $user->user_id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'display_name' => $user->display_name,
                 'email' => $user->email,
                 'license_number' => $doctor->license_number,
                 'is_validated' => (bool)$doctor->is_validated,

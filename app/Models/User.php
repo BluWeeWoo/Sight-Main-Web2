@@ -14,6 +14,11 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * The current schema does not consistently provide an updated_at column.
+     */
+    public const UPDATED_AT = null;
+
+    /**
      * The table associated with the model.
      */
     protected $table = 'user';
@@ -29,7 +34,9 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'user_id',
+        'first_name',
+        'last_name',
         'email',
         'password_hash',
         'role',
@@ -37,6 +44,7 @@ class User extends Authenticatable
         'clinic',
         'location',
         'status',
+        'must_change_password',
         'specialty',
         'license_number',
         'images',
@@ -100,5 +108,43 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
+    }
+
+    /**
+     * Canonical display name using split-name fields first.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        $first = trim((string) ($this->first_name ?? ''));
+        $last = trim((string) ($this->last_name ?? ''));
+        $combined = trim($first . ' ' . $last);
+
+        return $combined !== '' ? $combined : 'Unnamed User';
+    }
+
+    /**
+     * User initials for avatars.
+     */
+    public function getInitialsAttribute(): string
+    {
+        $first = trim((string) ($this->first_name ?? ''));
+        $last = trim((string) ($this->last_name ?? ''));
+
+        if ($first !== '' || $last !== '') {
+            $a = $first !== '' ? strtoupper(substr($first, 0, 1)) : '';
+            $b = $last !== '' ? strtoupper(substr($last, 0, 1)) : '';
+            $initials = trim($a . $b);
+            return $initials !== '' ? $initials : 'US';
+        }
+
+        return 'US';
+    }
+
+    /**
+     * Doctor-specific metadata profile.
+     */
+    public function doctorProfile()
+    {
+        return $this->hasOne(DoctorProfile::class, 'user_id', 'user_id');
     }
 }

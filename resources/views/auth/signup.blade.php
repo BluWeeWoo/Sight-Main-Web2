@@ -301,20 +301,37 @@
 
                     <!-- Account Info Tab -->
                     <div id="accountTab" class="tab-content active">
-                        <div class="form-group">
-                            <label for="fullname" class="form-label">Full Name</label>
-                            <input 
-                                type="text" 
-                                id="fullname" 
-                                name="name" 
-                                placeholder="John Doe"
-                                class="form-input"
-                                value="{{ old('name') }}"
-                                required
-                            >
-                            @error('name')
-                                <div class="error-message">{{ $message }}</div>
-                            @enderror
+                        <div class="form-group-row">
+                            <div class="form-group">
+                                <label for="first_name" class="form-label">First Name</label>
+                                <input 
+                                    type="text" 
+                                    id="first_name" 
+                                    name="first_name" 
+                                    placeholder="John"
+                                    class="form-input"
+                                    value="{{ old('first_name') }}"
+                                    required
+                                >
+                                @error('first_name')
+                                    <div class="error-message">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name" class="form-label">Last Name</label>
+                                <input 
+                                    type="text" 
+                                    id="last_name" 
+                                    name="last_name" 
+                                    placeholder="Doe"
+                                    class="form-input"
+                                    value="{{ old('last_name') }}"
+                                    required
+                                >
+                                @error('last_name')
+                                    <div class="error-message">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -449,6 +466,21 @@
                             </div>
                         </div>
 
+                        <div class="form-group">
+                            <label for="location" class="form-label">Location</label>
+                            <input 
+                                type="text" 
+                                id="location" 
+                                name="location" 
+                                placeholder="City / Region"
+                                class="form-input"
+                                value="{{ old('location') }}"
+                            >
+                            @error('location')
+                                <div class="error-message">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="button-row">
                             <button type="button" class="btn btn-secondary" onclick="prevStep()">
                                 Back
@@ -484,12 +516,13 @@
         }
 
         function nextStep() {
-            const name = document.getElementById('fullname').value.trim();
+            const firstName = document.getElementById('first_name').value.trim();
+            const lastName = document.getElementById('last_name').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const passwordConfirm = document.getElementById('password_confirmation').value;
 
-            if (!name || !email || !password || !passwordConfirm) {
+            if (!firstName || !lastName || !email || !password || !passwordConfirm) {
                 alert('Please fill in all account fields');
                 return;
             }

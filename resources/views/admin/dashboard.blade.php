@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{{ asset('assets/js/alpine.min.js') }}"></script>
     <style>
         * {
             margin: 0;
@@ -722,6 +722,36 @@
             background: #3d5a55;
         }
 
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 380px;
+        }
+
+        .toast {
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.4;
+            animation: toastIn .25s ease-out;
+        }
+
+        .toast.success { background: #15803d; }
+        .toast.error { background: #b91c1c; }
+        .toast.info { background: #1d4ed8; }
+
+        @keyframes toastIn {
+            from { transform: translateY(-8px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         @media (max-width: 1024px) {
             .form-grid,
             .form-row {
@@ -774,6 +804,12 @@
 </head>
 <body>
     <div class="container" x-data="professionalsManager()">
+        <div class="toast-container" x-cloak>
+            <template x-for="toast in toasts" :key="toast.id">
+                <div class="toast" :class="toast.type" x-text="toast.message"></div>
+            </template>
+        </div>
+
         <div class="tabs">
             <div id="tab-indicator" class="tab-indicator"></div>
             <div class="tab active" onclick="showSection(this, 'professionals')">Professionals</div>
@@ -790,19 +826,19 @@
             <div class="stats-grid">
                 <div class="stat-card" style="background-color: #4B6059;">
                     <div class="stat-label" style="color: rgba(255, 255, 255, 0.8);">Total Professionals</div>
-                    <div class="stat-value" style="color: white;" x-text="professionals.length"></div>
+                    <div class="stat-value" style="color: white;" x-text="stats.total_professionals || 0">{{ $stats['total_professionals'] ?? 0 }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Active</div>
-                    <div class="stat-value" x-text="professionals.filter(p => p.status.toLowerCase() === 'active').length"></div>
+                    <div class="stat-value" x-text="stats.active_professionals || 0">{{ $stats['active_professionals'] ?? 0 }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Total Patients</div>
-                    <div class="stat-value" x-text="professionals.reduce((sum, p) => sum + p.patients, 0)"></div>
+                    <div class="stat-value" x-text="stats.total_patients || 0">{{ $stats['total_patients'] ?? 0 }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Suspended</div>
-                    <div class="stat-value" x-text="professionals.filter(p => p.status.toLowerCase() === 'suspended').length"></div>
+                    <div class="stat-value" x-text="stats.suspended_professionals || 0">{{ $stats['suspended_professionals'] ?? 0 }}</div>
                 </div>
             </div>
 
@@ -817,7 +853,7 @@
                         @input="filterProfessionals()"
                     >
                     <div class="filter-tabs">
-                        <template x-for="status in ['All', 'Active', 'Inactive', 'Suspended']" :key="status">
+                        <template x-for="status in ['All', 'Active', 'Inactive', 'Suspended', 'Pending']" :key="status">
                             <button 
                                 class="filter-btn" 
                                 :class="{ active: filterStatus === status }"
@@ -826,6 +862,10 @@
                             ></button>
                         </template>
                     </div>
+                    <select class="filter-btn" x-model.number="pagination.per_page" @change="changePerPage()">
+                        <option :value="5">5 / page</option>
+                        <option :value="10">10 / page</option>
+                    </select>
                     <button class="add-button" @click="showAddModal = true">+ Add Professionals</button>
                 </div>
 
@@ -838,11 +878,19 @@
                         <div class="modal-body">
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label>Name</label>
+                                    <label>First Name</label>
                                     <input 
                                         type="text" 
-                                        placeholder="Name"
-                                        x-model="newProfessional.name"
+                                        placeholder="First Name"
+                                        x-model="newProfessional.first_name"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label>Last Name</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Last Name"
+                                        x-model="newProfessional.last_name"
                                     >
                                 </div>
                                 <div class="form-group">
@@ -911,10 +959,17 @@
                         <div class="modal-body" x-show="editingProfessional !== null">
                             <div class="form-grid edit">
                                 <div class="form-group">
-                                    <label>Name</label>
+                                    <label>First Name</label>
                                     <input 
                                         type="text"
-                                        x-model="editingProfessional.name"
+                                        x-model="editingProfessional.first_name"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label>Last Name</label>
+                                    <input 
+                                        type="text"
+                                        x-model="editingProfessional.last_name"
                                     >
                                 </div>
                                 <div class="form-group">
@@ -930,6 +985,7 @@
                                         <option value="active">Active</option>
                                         <option value="inactive">Inactive</option>
                                         <option value="suspended">Suspended</option>
+                                        <option value="pending">Pending</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -977,6 +1033,43 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @foreach($professionals as $pro)
+                                <tr class="server-row">
+                                    <td>
+                                        <div class="professional-name">{{ $pro['name'] ?? 'Unnamed User' }}</div>
+                                        <div class="professional-specialty">{{ $pro['specialty'] ?? 'N/A' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="professional-email">{{ $pro['email'] ?? 'N/A' }}</div>
+                                        <div class="professional-phone">{{ $pro['phone'] ?? 'N/A' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="clinic-info">
+                                            <div class="clinic-name">{{ $pro['clinic'] ?? 'N/A' }}</div>
+                                            <div class="clinic-license">License: {{ $pro['license_number'] ?? 'N/A' }}</div>
+                                        </div>
+                                    </td>
+                                    <td><span class="patient-badge">{{ $pro['patients'] ?? 0 }}</span></td>
+                                    <td>{{ !empty($pro['is_verified']) ? 'Verified' : 'Pending' }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ strtolower($pro['status'] ?? 'active') }}">{{ ucfirst(strtolower($pro['status'] ?? 'active')) }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="last-active-time">{{ $pro['last_active'] ?? 'Never' }}</div>
+                                        <div class="joined-date">Joined: {{ $pro['joined_date'] ?? 'N/A' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons"><span class="action-btn edit">Edit</span></div>
+                                    </td>
+                                </tr>
+                            @endforeach
+
+                            @if(count($professionals) === 0)
+                                <tr class="server-row">
+                                    <td colspan="8" style="text-align:center; color:#6b7280; padding:24px;">No professionals found. Verified doctor accounts will appear here.</td>
+                                </tr>
+                            @endif
+
                             <template x-for="pro in filteredProfessionals" :key="pro.id">
                                 <tr>
                                     <td>
@@ -1005,8 +1098,8 @@
                                     <td>
                                         <span 
                                             class="status-badge"
-                                            :class="'status-' + pro.status.toLowerCase()"
-                                            x-text="capitalizeStatus(pro.status)"
+                                            :class="'status-' + normalizeStatus(pro.status)"
+                                            x-text="capitalizeStatus(normalizeStatus(pro.status))"
                                         ></span>
                                     </td>
                                     <td>
@@ -1021,9 +1114,9 @@
                                             >Edit</button>
                                             <button 
                                                 class="action-btn"
-                                                :class="pro.status === 'active' ? 'delete' : 'edit'"
+                                                :class="normalizeStatus(pro.status) === 'active' ? 'delete' : 'edit'"
                                                 @click="toggleStatus(pro, 'doctor')"
-                                                x-text="pro.status === 'active' ? 'Disable' : 'Enable'"></button>
+                                                x-text="normalizeStatus(pro.status) === 'active' ? 'Disable' : 'Enable'"></button>
                                             <button 
                                                 class="action-btn delete"
                                                 @click="deleteProfessional(pro.id)"
@@ -1032,8 +1125,22 @@
                                     </td>
                                 </tr>
                             </template>
+                            <template x-if="filteredProfessionals.length === 0">
+                                <tr>
+                                    <td colspan="8" style="text-align:center; color:#6b7280; padding:24px;">No professionals found. Verified doctor accounts will appear here.</td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
+                </div>
+
+                <div class="toolbar" style="justify-content: space-between; margin-top: 16px;">
+                    <div style="color: #6b7280; font-size: 14px;" x-text="paginationText()"></div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="action-btn edit" :disabled="pagination.current_page <= 1" @click="loadProfessionals(pagination.current_page - 1)">Prev</button>
+                        <span style="font-size: 14px; color: #374151;" x-text="`Page ${pagination.current_page} of ${Math.max(pagination.last_page, 1)}`"></span>
+                        <button class="action-btn edit" :disabled="pagination.current_page >= pagination.last_page" @click="loadProfessionals(pagination.current_page + 1)">Next</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1064,8 +1171,12 @@
                         <p class="section-subtitle">Manage your account information</p>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Full Name</label>
-                                <input type="text" name="name" value="{{ $admin->name }}" placeholder="Enter full name" required>
+                                <label>First Name</label>
+                                <input type="text" name="first_name" value="{{ $admin->first_name ?? '' }}" placeholder="Enter first name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" name="last_name" value="{{ $admin->last_name ?? '' }}" placeholder="Enter last name" required>
                             </div>
                             <div class="form-group">
                                 <label>Email Address</label>
@@ -1102,88 +1213,48 @@
 
                 <div class="form-section">
                     <div>
-                        <h3>Security Settings</h3>
-                        <p class="section-subtitle">Manage security and authentication</p>
-                        <div class="checkbox-wrapper">
-                            <div class="checkbox-info">
-                                <label class="checkbox-label">Two-Factor Authentication</label>
-                                <div class="checkbox-description">Add an extra layer of security</div>
-                            </div>
-                            <input type="checkbox" id="twofa">
-                            <label for="twofa" class="toggle-switch"></label>
-                        </div>
-                        <div class="checkbox-wrapper">
-                            <div class="checkbox-info">
-                                <label class="checkbox-label">Login Alerts</label>
-                                <div class="checkbox-description">Get notified of new login attempts</div>
-                            </div>
-                            <input type="checkbox" id="login-alerts">
-                            <label for="login-alerts" class="toggle-switch"></label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <div>
-                        <h3>System Settings</h3>
-                        <p class="section-subtitle">Configure system-wide options</p>
-                        <div class="checkbox-wrapper">
-                            <div class="checkbox-info">
-                                <label class="checkbox-label">Two-Factor Authentication</label>
-                                <div class="checkbox-description">Add an extra layer of security</div>
-                            </div>
-                            <input type="checkbox" id="system-twofa">
-                            <label for="system-twofa" class="toggle-switch"></label>
-                        </div>
-                        <div class="checkbox-wrapper">
-                            <div class="checkbox-info">
-                                <label class="checkbox-label">Login Alerts</label>
-                                <div class="checkbox-description">Get notified of new login attempts</div>
-                            </div>
-                            <input type="checkbox" id="system-login-alerts">
-                            <label for="system-login-alerts" class="toggle-switch"></label>
-                        </div>
-                        <div class="form-row" style="margin-top: 20px;">
-                            <div class="form-group">
-                                <label>Current Password</label>
-                                <input type="password" placeholder="Enter current password">
-                            </div>
-                            <div class="form-group">
-                                <label>New Password</label>
-                                <input type="password" placeholder="Enter new password">
-                            </div>
-                            <div class="form-group">
-                                <label>Confirm Password</label>
-                                <input type="password" placeholder="Confirm password">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <div>
                         <h3>Other Administrators</h3>
                         <p class="section-subtitle">Manage admin accounts</p>
                         <div class="add-admin-section">
-                            <button type="button" class="add-admin-btn" @click="showAddAdminModal = true">+ Add Admin</button>
+                            <button type="button" class="add-admin-btn" onclick="openAddAdminModal(event)">+ Add Admin</button>
                         </div>
-                        <div class="admin-list">
-                            <template x-for="other in otherAdmins" :key="other.id">
-                                <div class="admin-item">
-                                <div>
-                                        <div class="professional-name" x-text="other.name"></div>
-                                        <div class="admin-email" x-text="other.email"></div>
-                                </div>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                        <span class="status-badge" :class="'status-' + other.status" x-text="capitalizeStatus(other.status)"></span>
-                                        <button class="action-btn" :class="other.status === 'active' ? 'delete' : 'edit'" @click="toggleStatus(other, 'admin')" x-text="other.status === 'active' ? 'Disable' : 'Enable'"></button>
-                                        <button class="admin-action" @click="removeAdmin(other.id)">🗑</button>
-                                </div>
-                            </div>
-                            </template>
-                            <template x-if="otherAdmins.length === 0">
-                                <p style="text-align: center; color: #9ca3af; padding: 20px;">No other administrators</p>
-                            </template>
+                        <div class="table-container" style="margin-top: 14px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Administrator</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="other in otherAdmins" :key="other.id">
+                                        <tr>
+                                            <td>
+                                                <div class="professional-name" x-text="other.name"></div>
+                                            </td>
+                                            <td>
+                                                <div class="professional-email" x-text="other.email"></div>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge" :class="'status-' + normalizeStatus(other.status)" x-text="capitalizeStatus(normalizeStatus(other.status))"></span>
+                                            </td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button type="button" class="action-btn" :class="normalizeStatus(other.status) === 'active' ? 'delete' : 'edit'" @click.prevent="toggleStatus(other, 'admin')" x-text="normalizeStatus(other.status) === 'active' ? 'Disable' : 'Enable'"></button>
+                                                    <button type="button" class="action-btn delete" @click.prevent="removeAdmin(other.id)">Delete</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <template x-if="otherAdmins.length === 0">
+                                        <tr>
+                                            <td colspan="4" style="text-align:center; color:#6b7280; padding:20px;">No other administrators</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1191,42 +1262,55 @@
                 <button type="submit" class="save-button">Save All Settings</button>
             </form>
         </div>
-    </div>
 
-    <!-- Add Admin Modal -->
-    <div class="modal-overlay" :class="{ active: showAddAdminModal }" x-cloak>
-        <div class="modal" @click.away="showAddAdminModal = false">
-            <div class="modal-header">
-                <h3>Add New Administrator</h3>
-            </div>
-            <div class="modal-body">
-                <div class="form-grid">
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>Full Name</label>
-                        <input type="text" placeholder="John Doe" x-model="newAdmin.name">
-                    </div>
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>Email Address</label>
-                        <input type="email" placeholder="admin@example.com" x-model="newAdmin.email">
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" placeholder="••••••••" x-model="newAdmin.password">
-                    </div>
-                    <div class="form-group">
-                        <label>Confirm Password</label>
-                        <input type="password" placeholder="••••••••" x-model="newAdmin.password_confirmation">
-                    </div>
+        <!-- Add Admin Modal -->
+        <div id="add-admin-modal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Add New Administrator</h3>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-save" @click="submitAddAdmin()">Create Admin</button>
-                <button class="btn-secondary" @click="showAddAdminModal = false">Cancel</button>
+                <form method="POST" action="{{ url('/admin/admin/add') }}" @submit.prevent="submitAddAdmin()">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" name="first_name" placeholder="John" value="{{ old('first_name') }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" name="last_name" placeholder="Doe" value="{{ old('last_name') }}" required>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Email Address</label>
+                                <input type="email" name="email" placeholder="admin@example.com" value="{{ old('email') }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" name="password" placeholder="••••••••" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <input type="password" name="password_confirmation" placeholder="••••••••" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn-save" :disabled="isSubmittingAdmin" x-text="isSubmittingAdmin ? 'Creating...' : 'Create Admin'"></button>
+                        <button type="button" class="btn-secondary" onclick="closeAddAdminModal()">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <script>
+        document.addEventListener('alpine:init', () => {
+            document.querySelectorAll('.server-row').forEach((row) => {
+                row.style.display = 'none';
+            });
+        });
+
         function moveIndicator(element) {
             const indicator = document.getElementById('tab-indicator');
             if (!indicator || !element) return;
@@ -1249,10 +1333,40 @@
         window.addEventListener('load', () => moveIndicator(document.querySelector('.tab.active')));
         window.addEventListener('resize', () => moveIndicator(document.querySelector('.tab.active')));
 
+        function openAddAdminModal(event) {
+            if (event) event.preventDefault();
+            const modal = document.getElementById('add-admin-modal');
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function closeAddAdminModal() {
+            const modal = document.getElementById('add-admin-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            const modal = document.getElementById('add-admin-modal');
+            if (!modal || !modal.classList.contains('active')) return;
+
+            if (event.target === modal) {
+                closeAddAdminModal();
+            }
+        });
+
+        @if($errors->has('first_name') || $errors->has('last_name') || $errors->has('email') || $errors->has('password'))
+            window.addEventListener('load', () => openAddAdminModal());
+        @endif
+
         function professionalsManager() {
             return {
                 professionals: @json($professionals),
                 otherAdmins: @json($otherAdmins),
+                stats: @json($stats),
+                pagination: @json($pagination),
                 csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 filteredProfessionals: @json($professionals),
                 searchTerm: '',
@@ -1260,14 +1374,17 @@
                 showAddModal: false,
                 showAddAdminModal: false,
                 editingProfessional: null,
+                isSubmittingAdmin: false,
                 newAdmin: {
-                    name: '',
+                    first_name: '',
+                    last_name: '',
                     email: '',
                     password: '',
                     password_confirmation: ''
                 },
                 newProfessional: {
-                    name: '',
+                    first_name: '',
+                    last_name: '',
                     email: '',
                     phone: '',
                     specialty: '',
@@ -1277,28 +1394,66 @@
                     password: '',
                     password_confirmation: ''
                 },
+                toasts: [],
+
+                notify(type, message) {
+                    const id = Date.now() + Math.random();
+                    this.toasts.push({ id, type, message });
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id);
+                    }, 3200);
+                },
+
+                async loadProfessionals(page = 1) {
+                    const params = new URLSearchParams({
+                        page: String(page),
+                        per_page: String(this.pagination.per_page || 10),
+                        status: this.filterStatus,
+                        search: this.searchTerm || ''
+                    });
+
+                    try {
+                        const response = await fetch(`/admin/professionals?${params.toString()}`, {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || 'Failed to load professionals');
+                        }
+
+                        this.professionals = data.professionals || [];
+                        this.filteredProfessionals = [...this.professionals];
+                        this.pagination = {
+                            ...this.pagination,
+                            ...(data.pagination || {})
+                        };
+                    } catch (error) {
+                        this.notify('error', error.message || 'Failed to load professionals.');
+                    }
+                },
 
                 filterProfessionals() {
-                    console.log('Filter called. filterStatus:', this.filterStatus);
-                    console.log('Professionals:', this.professionals);
-                    
-                    this.filteredProfessionals = this.professionals.filter((pro) => {
-                        const proStatus = (pro.status || 'active').toLowerCase();
-                        const matchesSearch =
-                            (pro.name || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                            (pro.email || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                            (pro.clinic || '').toLowerCase().includes(this.searchTerm.toLowerCase());
-                        
-                        const matchesFilter = 
-                            this.filterStatus === 'All' || 
-                            proStatus === this.filterStatus.toLowerCase();
-                        
-                        console.log(`Pro: ${pro.name}, Status: ${proStatus}, FilterStatus: ${this.filterStatus}, Matches: ${matchesFilter}`);
-                        
-                        return matchesSearch && matchesFilter;
-                    });
-                    
-                    console.log('Filtered result count:', this.filteredProfessionals.length);
+                    this.loadProfessionals(1);
+                },
+
+                changePerPage() {
+                    if (![5, 10].includes(Number(this.pagination.per_page))) {
+                        this.pagination.per_page = 10;
+                    }
+                    this.loadProfessionals(1);
+                },
+
+                paginationText() {
+                    const total = Number(this.pagination.total || 0);
+                    if (!total) {
+                        return 'No professionals found';
+                    }
+                    const from = this.pagination.from || 0;
+                    const to = this.pagination.to || 0;
+                    return `Showing ${from}-${to} of ${total}`;
                 },
 
                 capitalizeStatus(status) {
@@ -1306,11 +1461,40 @@
                     return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
                 },
 
+                normalizeStatus(status) {
+                    return (status || 'active').toString().toLowerCase();
+                },
+
+                splitName(name) {
+                    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+                    if (!parts.length) {
+                        return { first_name: '', last_name: '' };
+                    }
+                    if (parts.length === 1) {
+                        return { first_name: parts[0], last_name: '' };
+                    }
+                    return {
+                        first_name: parts.slice(0, -1).join(' '),
+                        last_name: parts[parts.length - 1]
+                    };
+                },
+
                 async addProfessional() {
-                    if (!this.newProfessional.name || !this.newProfessional.email || !this.newProfessional.clinic) {
-                        alert('Please fill in all required fields');
+                    if (!this.newProfessional.first_name || !this.newProfessional.last_name || !this.newProfessional.email || !this.newProfessional.clinic) {
+                        this.notify('error', 'Please fill in all required fields.');
                         return;
                     }
+
+                    const payload = {
+                        first_name: this.newProfessional.first_name,
+                        last_name: this.newProfessional.last_name,
+                        email: this.newProfessional.email,
+                        phone: this.newProfessional.phone,
+                        specialty: this.newProfessional.specialty,
+                        clinic: this.newProfessional.clinic,
+                        license_number: this.newProfessional.license_number,
+                        location: this.newProfessional.location
+                    };
 
                     try {
                         const response = await fetch('/admin/professionals', {
@@ -1320,41 +1504,55 @@
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': this.csrfToken
                             },
-                            body: JSON.stringify(this.newProfessional)
+                            body: JSON.stringify(payload)
                         });
 
                         const data = await response.json();
 
                         if (response.ok && data.success) {
-                            // Dynamically update the local professionals list
-                            this.professionals.push(data.professional);
-                            this.filterProfessionals();
+                            await this.loadProfessionals(1);
                             
-                            // Close the modal and reset the form
                             this.showAddModal = false;
                             this.resetNewProfessional();
-                            
-                            alert(`Professional Added Successfully!\n\nEmail: ${data.professional.email}\nTemporary Password: ${data.temp_password}\n\nPlease share these credentials with the professional.`);
+
+                            this.notify('success', `Professional added. Temp password: ${data.temp_password}`);
                         } else {
                             // Display specific validation or server error messages
                             let errorMessage = data.message || 'Error adding professional';
                             if (data.errors) {
                                 errorMessage = Object.values(data.errors).flat().join('\n');
                             }
-                            alert(errorMessage);
+                            this.notify('error', errorMessage);
                         }
                     } catch (error) {
                         console.error('Submission Error:', error);
-                        alert('Failed to connect to the server. Please check your internet connection or try again.');
+                        this.notify('error', 'Failed to connect to the server. Please try again.');
                     }
                 },
 
                 async submitAddAdmin() {
-                    if(!this.newAdmin.name || !this.newAdmin.email || !this.newAdmin.password) {
-                        alert('Please fill in all fields');
+                    if (this.isSubmittingAdmin) return;
+
+                    if(!this.newAdmin.first_name || !this.newAdmin.last_name || !this.newAdmin.email || !this.newAdmin.password) {
+                        this.notify('error', 'Please fill in all fields.');
                         return;
                     }
+                    if (this.newAdmin.password !== this.newAdmin.password_confirmation) {
+                        this.notify('error', 'Password confirmation does not match.');
+                        return;
+                    }
+
+                    const payload = {
+                        first_name: this.newAdmin.first_name,
+                        last_name: this.newAdmin.last_name,
+                        email: this.newAdmin.email,
+                        password: this.newAdmin.password,
+                        password_confirmation: this.newAdmin.password_confirmation
+                    };
+
                     try {
+                        this.isSubmittingAdmin = true;
+
                         const response = await fetch('/admin/admin/add', {
                             method: 'POST',
                             headers: {
@@ -1362,22 +1560,33 @@
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': this.csrfToken
                             },
-                            body: JSON.stringify(this.newAdmin)
+                            body: JSON.stringify(payload)
                         });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.otherAdmins.push(data.admin);
+                        const contentType = response.headers.get('content-type') || '';
+                        const data = contentType.includes('application/json')
+                            ? await response.json()
+                            : { success: false, message: await response.text() };
+
+                        if (response.ok && data.success) {
+                            this.otherAdmins.push({
+                                ...data.admin,
+                                status: this.normalizeStatus(data.admin.status)
+                            });
                             this.showAddAdminModal = false;
-                            this.newAdmin = { name: '', email: '', password: '', password_confirmation: '' };
-                            alert('Admin added successfully');
+                            this.newAdmin = { first_name: '', last_name: '', email: '', password: '', password_confirmation: '' };
+                            this.notify('success', 'Admin added successfully.');
                         } else {
-                            let msg = data.message || 'Error adding admin';
+                            let msg = data.message || `Error adding admin (HTTP ${response.status})`;
                             if (data.errors) {
                                 msg = Object.values(data.errors).flat().join('\n');
                             }
-                            alert(msg);
+                            this.notify('error', msg);
                         }
-                    } catch (e) { alert('Failed to add admin'); }
+                    } catch (e) {
+                        this.notify('error', e.message || 'Failed to add admin.');
+                    } finally {
+                        this.isSubmittingAdmin = false;
+                    }
                 },
 
                 async removeAdmin(id) {
@@ -1395,53 +1604,85 @@
                         const data = await response.json();
                         if (data.success) {
                             this.otherAdmins = this.otherAdmins.filter(a => a.id !== id);
-                            alert('Admin removed successfully');
+                            this.notify('success', 'Admin removed successfully.');
                         } else {
-                            alert(data.message || 'Error removing admin');
+                            this.notify('error', data.message || 'Error removing admin');
                         }
                     } catch (error) {
                         console.error('Delete Error:', error);
-                        alert('Failed to remove admin');
+                        this.notify('error', 'Failed to remove admin.');
                     }
                 },
 
                 resetNewProfessional() {
                     this.newProfessional = { 
-                        name: '', email: '', phone: '', specialty: '', 
+                        first_name: '', last_name: '', email: '', phone: '', specialty: '', 
                         clinic: '', license_number: '', location: '',
                         password: '', password_confirmation: ''
                     };
                 },
 
                 editProfessional(pro) {
-                    // Ensure status is lowercase for the select binding
-                    this.editingProfessional = { ...pro, status: pro.status.toLowerCase() };
+                    const parsed = this.splitName(pro.name || '');
+                    this.editingProfessional = {
+                        ...pro,
+                        first_name: pro.first_name || parsed.first_name,
+                        last_name: pro.last_name || parsed.last_name,
+                        status: this.normalizeStatus(pro.status)
+                    };
                 },
 
                 async saveEdit() {
                     if (this.editingProfessional) {
                         try {
+                            const payload = {
+                                first_name: this.editingProfessional.first_name,
+                                last_name: this.editingProfessional.last_name,
+                                email: this.editingProfessional.email,
+                                phone: this.editingProfessional.phone,
+                                clinic: this.editingProfessional.clinic,
+                                specialty: this.editingProfessional.specialty,
+                                license_number: this.editingProfessional.license_number,
+                                location: this.editingProfessional.location,
+                                status: this.normalizeStatus(this.editingProfessional.status)
+                            };
+
                             const response = await fetch(`/admin/professionals/${this.editingProfessional.id}`, {
                                 method: 'PUT',
                                 headers: {
                                     'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
                                     'X-CSRF-TOKEN': this.csrfToken
                                 },
-                                body: JSON.stringify(this.editingProfessional)
+                                body: JSON.stringify(payload)
                             });
-                            
-                            if (!response.ok) throw new Error('Update failed');
-                        } catch (error) {
-                            alert('Failed to save changes to the server');
-                            return;
-                        }
 
-                        const index = this.professionals.findIndex(p => p.id === this.editingProfessional.id);
-                        if (index !== -1) {
-                            this.professionals[index] = this.editingProfessional;
+                            const data = await response.json();
+                            if (!response.ok || !data.success) {
+                                let errorMessage = data.message || 'Update failed';
+                                if (data.errors) {
+                                    errorMessage = Object.values(data.errors).flat().join('\n');
+                                }
+                                throw new Error(errorMessage);
+                            }
+
+                            const updated = data.professional || {
+                                ...this.editingProfessional,
+                                name: `${payload.first_name} ${payload.last_name}`.trim(),
+                                status: payload.status
+                            };
+
+                            const index = this.professionals.findIndex(p => p.id === this.editingProfessional.id);
+                            if (index !== -1) {
+                                this.professionals[index] = updated;
+                            }
+
+                            this.filteredProfessionals = [...this.professionals];
+                            this.editingProfessional = null;
+                            this.notify('success', data.message || 'Professional updated successfully.');
+                        } catch (error) {
+                            this.notify('error', error.message || 'Failed to save changes to the server.');
                         }
-                        this.filterProfessionals();
-                        this.editingProfessional = null;
                     }
                 },
 
@@ -1454,18 +1695,16 @@
                             });
                             
                             if (!response.ok) throw new Error('Delete failed');
-                            
-                            this.professionals = this.professionals.filter(p => p.id !== id);
+                            await this.loadProfessionals(this.pagination.current_page);
+                            this.notify('success', 'Professional deleted successfully.');
                         } catch (error) {
-                            alert('Failed to delete from server');
+                            this.notify('error', 'Failed to delete from server.');
                         }
-                        
-                        this.filterProfessionals();
                     }
                 },
 
                 async toggleStatus(user, type) {
-                    const action = user.status === 'active' ? 'disable' : 'enable';
+                    const action = this.normalizeStatus(user.status) === 'active' ? 'disable' : 'enable';
                     if (!confirm(`Are you sure you want to ${action} this account?`)) return;
 
                     try {
@@ -1479,16 +1718,25 @@
 
                         const data = await response.json();
                         if (data.success) {
-                            user.status = data.status;
+                            const updatedStatus = this.normalizeStatus(data.status);
+                            user.status = updatedStatus;
                             if (type === 'doctor') {
-                                this.filterProfessionals();
+                                this.professionals = this.professionals.map(p =>
+                                    p.id === user.id ? { ...p, status: updatedStatus } : p
+                                );
+                                this.filteredProfessionals = [...this.professionals];
+                            } else if (type === 'admin') {
+                                this.otherAdmins = this.otherAdmins.map(a =>
+                                    a.id === user.id ? { ...a, status: updatedStatus } : a
+                                );
                             }
+                            this.notify('success', data.message || 'Status updated successfully.');
                         } else {
-                            alert(data.message);
+                            this.notify('error', data.message || 'Failed to update status.');
                         }
                     } catch (error) {
                         console.error('Toggle Error:', error);
-                        alert('Failed to update status');
+                        this.notify('error', 'Failed to update status.');
                     }
                 },
 
@@ -1506,16 +1754,20 @@
                         const data = await response.json();
                         if (data.success) {
                             pro.is_verified = data.is_verified;
-                            // Optional: show a small toast notification here
+                            this.notify('success', data.message || 'Verification updated successfully.');
                         } else {
-                            alert(data.message || 'Failed to update verification');
+                            this.notify('error', data.message || 'Failed to update verification.');
                             // Revert checkbox state if failed
                             pro.is_verified = !pro.is_verified;
                         }
                     } catch (error) {
                         console.error('Verification Error:', error);
-                        alert('A connection error occurred. Please try again.');
+                        this.notify('error', 'A connection error occurred. Please try again.');
                     }
+                },
+
+                init() {
+                    this.filteredProfessionals = [...this.professionals];
                 }
             };
         }

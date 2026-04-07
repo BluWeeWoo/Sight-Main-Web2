@@ -13,10 +13,25 @@ use Illuminate\Support\Facades\Hash;
 
 class RuleEngineService
 {
+    private function extractNameParts(array $payload): array
+    {
+        $firstName = trim((string) ($payload['first_name'] ?? ''));
+        $lastName = trim((string) ($payload['last_name'] ?? ''));
+
+        if ($firstName !== '' || $lastName !== '') {
+            return [$firstName !== '' ? $firstName : 'Unknown', $lastName !== '' ? $lastName : 'Unknown'];
+        }
+
+        return ['Unknown', 'Unknown'];
+    }
+
     public function registerGuardian(array $payload): array
     {
+        [$firstName, $lastName] = $this->extractNameParts($payload);
+
         $user = User::create([
-            'name' => $payload['name'],
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'email' => $payload['email'],
             'password_hash' => Hash::make($payload['password']),
             'role' => 'Guardian',
@@ -30,7 +45,9 @@ class RuleEngineService
         return $this->response('success', 'Guardian registered successfully', [
             'user' => [
                 'id' => $user->user_id,
-                'name' => $user->name,
+                'name' => $user->display_name,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
                 'email' => $user->email,
             ],
         ], null, 201);
@@ -45,8 +62,11 @@ class RuleEngineService
         }
 
         $result = DB::transaction(function () use ($payload, $guardian) {
+            [$firstName, $lastName] = $this->extractNameParts($payload);
+
             $childUser = User::create([
-                'name' => $payload['name'],
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => 'child_' . uniqid() . '@sightapp.local',
                 'password_hash' => Hash::make(uniqid()),
                 'role' => 'Child',
@@ -92,7 +112,9 @@ class RuleEngineService
         return $this->response('success', 'Child profile created successfully', [
             'child' => [
                 'child_id' => $result['child']->child_id,
-                'name' => $result['child_user']->name,
+                'name' => $result['child_user']->display_name,
+                'first_name' => $result['child_user']->first_name,
+                'last_name' => $result['child_user']->last_name,
                 'birthdate' => $result['child']->birthdate,
                 'login_code' => $result['login_code'],
             ],

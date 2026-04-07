@@ -66,10 +66,12 @@ class SharedApiController extends Controller
         return response()->json([
             'message' => 'Login successful',
             'user' => [
-                'id' => $user->id,
+                'id' => $user->user_id,
                 'email' => $user->email,
                 'role' => $user->role,
-                'name' => $user->name ?? null,
+                'first_name' => $user->first_name ?? null,
+                'last_name' => $user->last_name ?? null,
+                'display_name' => $user->display_name,
             ]
         ], 200);
     }

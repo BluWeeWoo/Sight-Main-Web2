@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use Carbon\CarbonPeriod;
 use App\Models\DoctorProfile;
 use App\Models\ChildProfile;
 use Illuminate\Http\Request;
@@ -13,7 +13,7 @@ class DoctorController extends Controller
     /**
      * Show the doctor dashboard
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $doctor = Auth::user();
         if (is_null($doctor->email_verified_at)) {
@@ -22,20 +22,36 @@ class DoctorController extends Controller
         }
 
         $doctorProfile = DoctorProfile::where('user_id', $doctor->user_id)->first();
-        // Get doctor's assigned patients from database
-        $patients = [];
+        $patientModels = collect();
+
         if ($doctorProfile) {
-            $patients = $doctorProfile->patients()->get()->map(function ($child) {
-                return [
-                    'id' => $child->child_id,
-                    'name' => $child->user->display_name ?? 'Unknown',
-                    'birthdate' => $child->birthdate,
-                    'created_at' => $child->user->created_at ? $child->user->created_at->format('M d, Y') : null,
-                ];
-            })->toArray();
+            $patientModels = $doctorProfile->patients()
+                ->with(['user', 'guardians.user'])
+                ->get();
         }
 
-        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile'));
+        $patients = $patientModels->map(function (ChildProfile $child) {
+            $latestScore = $child->eyeHealthScores()->orderByDesc('recorded_date')->first();
+            $latestScoreValue = $latestScore?->daily_score;
+
+            return [
+                'id' => $child->child_id,
+                'name' => $child->user?->display_name ?? 'Unknown Patient',
+                'guardian' => $child->guardians->first()?->user?->display_name ?? 'No guardian linked',
+                'initials' => $this->getInitials($child->user?->display_name ?? 'Unknown Patient'),
+                'birthdate' => $child->birthdate,
+                'created_at' => $child->user?->created_at ? $child->user->created_at->format('M d, Y') : null,
+                'patient_code' => 'PT-2026-' . str_pad((string) $child->child_id, 3, '0', STR_PAD_LEFT),
+                'compliance_percent' => $latestScoreValue !== null ? (int) round($latestScoreValue) : null,
+            ];
+        })->values()->toArray();
+
+        $selectedPatientId = (int) $request->query('patient', $patients[0]['id'] ?? 0);
+        $selectedPatient = collect($patients)->firstWhere('id', $selectedPatientId) ?? ($patients[0] ?? null);
+        $selectedPatientModel = $patientModels->firstWhere('child_id', $selectedPatient['id'] ?? null);
+        $dashboardData = $selectedPatientModel ? $this->buildDashboardData($selectedPatientModel) : $this->emptyDashboardData();
+
+        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile', 'selectedPatient', 'selectedPatientId', 'dashboardData'));
     }
 
     /**
@@ -133,5 +149,304 @@ class DoctorController extends Controller
         }
 
         return response()->json($activities);
+    }
+
+    private function buildDashboardData(ChildProfile $child): array
+    {
+        $startDate = now()->subDays(6)->startOfDay();
+        $endDate = now()->endOfDay();
+
+        $metricRows = $child->eyeHealthMetrics()
+            ->whereBetween('timestamp', [$startDate, $endDate])
+            ->selectRaw('DATE(`timestamp`) as metric_date, AVG(avg_blink_rate) as avg_blink_rate, AVG(avg_distance) as avg_distance, AVG(screen_time_minutes) as screen_time_minutes, SUM(strain_events) as strain_events')
+            ->groupByRaw('DATE(`timestamp`)')
+            ->orderBy('metric_date')
+            ->get()
+            ->keyBy('metric_date');
+
+        $scoreRows = $child->eyeHealthScores()
+            ->whereBetween('recorded_date', [$startDate, $endDate])
+            ->selectRaw('DATE(recorded_date) as score_date, AVG(daily_score) as daily_score')
+            ->groupByRaw('DATE(recorded_date)')
+            ->orderBy('score_date')
+            ->get()
+            ->keyBy('score_date');
+
+        $labels = [];
+        $blinkRates = [];
+        $distances = [];
+        $screenTimes = [];
+        $strainEvents = [];
+        $healthScores = [];
+        $activities = [];
+        $previousScore = null;
+
+        foreach (CarbonPeriod::create($startDate->toDateString(), $endDate->toDateString()) as $date) {
+            $key = $date->format('Y-m-d');
+            $metric = $metricRows->get($key);
+            $score = $scoreRows->get($key);
+
+            $labels[] = $date->format('D');
+            $blinkRates[] = $metric ? round((float) $metric->avg_blink_rate, 1) : null;
+            $distances[] = $metric ? round((float) $metric->avg_distance, 1) : null;
+            $screenTimes[] = $metric ? round((float) $metric->screen_time_minutes, 1) : null;
+            $strainEvents[] = $metric ? (int) $metric->strain_events : null;
+            $healthScores[] = $score ? round((float) $score->daily_score, 1) : null;
+
+            if ($metric) {
+                $blinkRate = (float) $metric->avg_blink_rate;
+                $distance = (float) $metric->avg_distance;
+                $screenTime = (float) $metric->screen_time_minutes;
+                $strainEventCount = (int) $metric->strain_events;
+
+                if ($screenTime <= 120 && $strainEventCount <= 1) {
+                    $activities[] = [
+                        'title' => 'Target screen-time window met',
+                        'detail' => $this->formatActivityDetail('Average screen time stayed within the 2 hour target.', $date),
+                        'timestamp' => $date->copy()->setTime(15, 0),
+                        'icon' => 'clock',
+                    ];
+                }
+
+                if ($blinkRate < 12) {
+                    $activities[] = [
+                        'title' => 'Low blink rate detected',
+                        'detail' => $this->formatActivityDetail('Average blink rate dropped to ' . round($blinkRate, 1) . ' per minute.', $date),
+                        'timestamp' => $date->copy()->setTime(12, 30),
+                        'icon' => 'activity',
+                    ];
+                }
+
+                if ($distance < 40) {
+                    $activities[] = [
+                        'title' => 'Viewing distance too close',
+                        'detail' => $this->formatActivityDetail('Average viewing distance fell to ' . round($distance, 1) . ' cm.', $date),
+                        'timestamp' => $date->copy()->setTime(11, 0),
+                        'icon' => 'eye',
+                    ];
+                }
+
+                if ($strainEventCount > 0) {
+                    $activities[] = [
+                        'title' => 'Strain events recorded',
+                        'detail' => $this->formatActivityDetail($strainEventCount . ' strain event' . ($strainEventCount === 1 ? '' : 's') . ' were logged for the day.', $date),
+                        'timestamp' => $date->copy()->setTime(9, 30),
+                        'icon' => 'exclamation-triangle',
+                    ];
+                }
+            }
+
+            if ($score && $previousScore !== null) {
+                $currentScore = (float) $score->daily_score;
+                $difference = round($currentScore - $previousScore, 1);
+
+                if (abs($difference) >= 2) {
+                    $activities[] = [
+                        'title' => $difference > 0 ? 'Eye health score improved' : 'Eye health score dipped',
+                        'detail' => $this->formatActivityDetail('Score changed by ' . ($difference > 0 ? '+' : '') . $difference . ' points compared with the previous day.', $date),
+                        'timestamp' => $date->copy()->setTime(8, 0),
+                        'icon' => $difference > 0 ? 'arrow-up-right' : 'arrow-down-right',
+                    ];
+                }
+            }
+
+            if ($score) {
+                $previousScore = (float) $score->daily_score;
+            }
+        }
+
+        if ($child->last_sync) {
+            $activities[] = [
+                'title' => 'Metrics synced',
+                'detail' => 'Last sync completed on ' . $child->last_sync->format('M d, Y \a\t g:i A') . '.',
+                'timestamp' => $child->last_sync,
+                'icon' => 'sync',
+            ];
+        }
+
+        if ($child->user?->created_at) {
+            $activities[] = [
+                'title' => 'Profile created',
+                'detail' => 'Patient profile created on ' . $child->user->created_at->format('M d, Y') . '.',
+                'timestamp' => $child->user->created_at,
+                'icon' => 'person',
+            ];
+        }
+
+        usort($activities, function (array $left, array $right) {
+            return $right['timestamp'] <=> $left['timestamp'];
+        });
+
+        $activities = array_map(function (array $activity) {
+            return [
+                'title' => $activity['title'],
+                'detail' => $activity['detail'],
+                'icon' => $activity['icon'],
+            ];
+        }, $activities);
+
+        $metricValues = $metricRows->values();
+        $scoreValues = $scoreRows->values();
+        $healthScoreValue = $this->latestNumericValue($scoreValues->pluck('daily_score')->all());
+        $averageScore = $this->averageNumericValue($scoreValues->pluck('daily_score')->all());
+        $averageBlinkRate = $this->averageNumericValue($metricValues->pluck('avg_blink_rate')->all());
+        $averageDistance = $this->averageNumericValue($metricValues->pluck('avg_distance')->all());
+        $averageScreenTime = $this->averageNumericValue($metricValues->pluck('screen_time_minutes')->all());
+        $daysWithinTarget = $metricValues->filter(function ($row) {
+            return (float) $row->screen_time_minutes <= 120 && (int) $row->strain_events <= 1;
+        })->count();
+
+        return [
+            'health_grade' => $this->gradeFromScore($healthScoreValue ?? $averageScore),
+            'health_score' => $healthScoreValue ?? $averageScore,
+            'health_score_display' => $this->formatPercentage($healthScoreValue ?? $averageScore),
+            'screen_time_display' => $this->formatDuration($averageScreenTime),
+            'blink_rate_display' => $this->formatRate($averageBlinkRate),
+            'distance_display' => $this->formatDistance($averageDistance),
+            'target_days_display' => $daysWithinTarget . ' / ' . max(count($labels), 1),
+            'low_blink_events' => $metricValues->filter(fn ($row) => (float) $row->avg_blink_rate < 12)->count(),
+            'distance_violations' => $metricValues->filter(fn ($row) => (float) $row->avg_distance < 40)->count(),
+            'labels' => $labels,
+            'blink_rates' => $blinkRates,
+            'distances' => $distances,
+            'screen_times' => $screenTimes,
+            'strain_events' => $strainEvents,
+            'health_scores' => $healthScores,
+            'activity_items' => $activities,
+            'has_data' => ! empty($labels) && $metricValues->isNotEmpty(),
+        ];
+    }
+
+    private function emptyDashboardData(): array
+    {
+        return [
+            'health_grade' => 'No Data',
+            'health_score' => null,
+            'health_score_display' => '--',
+            'screen_time_display' => '--',
+            'blink_rate_display' => '--',
+            'distance_display' => '--',
+            'target_days_display' => '0 / 0',
+            'low_blink_events' => 0,
+            'distance_violations' => 0,
+            'labels' => [],
+            'blink_rates' => [],
+            'distances' => [],
+            'screen_times' => [],
+            'strain_events' => [],
+            'health_scores' => [],
+            'activity_items' => [],
+            'has_data' => false,
+        ];
+    }
+
+    private function getInitials(?string $name): string
+    {
+        $parts = preg_split('/\s+/', trim((string) $name)) ?: [];
+
+        if (count($parts) === 0 || $parts[0] === '') {
+            return 'PT';
+        }
+
+        $first = strtoupper(substr($parts[0], 0, 1));
+        $last = count($parts) > 1 ? strtoupper(substr($parts[count($parts) - 1], 0, 1)) : '';
+
+        return trim($first . $last) ?: 'PT';
+    }
+
+    private function averageNumericValue(array $values): ?float
+    {
+        $filtered = array_values(array_filter($values, fn ($value) => $value !== null));
+
+        if ($filtered === []) {
+            return null;
+        }
+
+        return round(array_sum(array_map('floatval', $filtered)) / count($filtered), 1);
+    }
+
+    private function latestNumericValue(array $values): ?float
+    {
+        $filtered = array_values(array_filter($values, fn ($value) => $value !== null));
+
+        if ($filtered === []) {
+            return null;
+        }
+
+        return round((float) end($filtered), 1);
+    }
+
+    private function gradeFromScore(?float $score): string
+    {
+        if ($score === null) {
+            return 'No Data';
+        }
+
+        if ($score >= 90) {
+            return 'Excellent';
+        }
+
+        if ($score >= 80) {
+            return 'Good';
+        }
+
+        if ($score >= 70) {
+            return 'Fair';
+        }
+
+        return 'Needs Attention';
+    }
+
+    private function formatPercentage(?float $value): string
+    {
+        if ($value === null) {
+            return '--';
+        }
+
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') . '%';
+    }
+
+    private function formatDuration(?float $minutes): string
+    {
+        if ($minutes === null) {
+            return '--';
+        }
+
+        $roundedMinutes = (int) round($minutes);
+        $hours = intdiv($roundedMinutes, 60);
+        $remainingMinutes = $roundedMinutes % 60;
+
+        if ($hours > 0 && $remainingMinutes > 0) {
+            return $hours . 'h ' . $remainingMinutes . 'm';
+        }
+
+        if ($hours > 0) {
+            return $hours . 'h';
+        }
+
+        return $roundedMinutes . 'm';
+    }
+
+    private function formatRate(?float $value): string
+    {
+        if ($value === null) {
+            return '--';
+        }
+
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') . '/min';
+    }
+
+    private function formatDistance(?float $value): string
+    {
+        if ($value === null) {
+            return '--';
+        }
+
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') . 'cm';
+    }
+
+    private function formatActivityDetail(string $detail, $date): string
+    {
+        return $detail . ' ' . $date->format('M d, Y') . '.';
     }
 }

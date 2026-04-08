@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Carbon\CarbonPeriod;
 use App\Models\DoctorProfile;
 use App\Models\ChildProfile;
+use App\Models\Prescription;
+use App\Models\ClinicianPatientLink;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,6 +28,7 @@ class DoctorController extends Controller
 
         if ($doctorProfile) {
             $patientModels = $doctorProfile->patients()
+                ->wherePivot('is_active', true)
                 ->with(['user', 'guardians.user'])
                 ->get();
         }
@@ -50,6 +53,18 @@ class DoctorController extends Controller
         $selectedPatient = collect($patients)->firstWhere('id', $selectedPatientId) ?? ($patients[0] ?? null);
         $selectedPatientModel = $patientModels->firstWhere('child_id', $selectedPatient['id'] ?? null);
         $dashboardData = $selectedPatientModel ? $this->buildDashboardData($selectedPatientModel) : $this->emptyDashboardData();
+
+        $activityPerPage = 6;
+        $totalActivities = count($dashboardData['activity_items']);
+        $activityTotalPages = max((int) ceil(max($totalActivities, 1) / $activityPerPage), 1);
+        $activityPage = max((int) $request->query('activity_page', 1), 1);
+        $activityPage = min($activityPage, $activityTotalPages);
+        $activityOffset = ($activityPage - 1) * $activityPerPage;
+
+        $dashboardData['activity_page_items'] = array_slice($dashboardData['activity_items'], $activityOffset, $activityPerPage);
+        $dashboardData['activity_page'] = $activityPage;
+        $dashboardData['activity_total_pages'] = $activityTotalPages;
+        $dashboardData['activity_total_items'] = $totalActivities;
 
         return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile', 'selectedPatient', 'selectedPatientId', 'dashboardData'));
     }
@@ -79,18 +94,45 @@ class DoctorController extends Controller
     /**
      * Send personalized health plan to patient
      */
-    public function sendHealthPlan(Request $request)
+    public function sendHealthPlan(Request $request, $patientId)
     {
         $validated = $request->validate([
-            'patient_id' => 'required|string',
-            'plan' => 'required|string',
+            'plan' => 'required|string|max:2000',
         ]);
 
-        // Store health plan in database (email sending can be configured in mail.php)
-        // For now, acknowledge the request
+        $doctorProfile = DoctorProfile::where('user_id', Auth::id())->first();
+        if (! $doctorProfile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Doctor profile not found',
+            ], 404);
+        }
+
+        $link = ClinicianPatientLink::where('doctor_id', $doctorProfile->doctor_id)
+            ->where('child_id', (int) $patientId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $link) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active doctor-patient link found',
+            ], 403);
+        }
+
+        $nextRecommendationId = ((int) Prescription::max('recommendation_id')) + 1;
+
+        $recommendation = Prescription::create([
+            'recommendation_id' => $nextRecommendationId,
+            'link_id' => $link->link_id,
+            'advice_text' => trim($validated['plan']),
+            'date_issued' => now(),
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Health plan sent successfully',
+            'message' => 'Recommendation sent successfully',
+            'recommendation_id' => $recommendation->recommendation_id,
         ]);
     }
 

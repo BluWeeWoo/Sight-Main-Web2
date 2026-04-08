@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Allow same-origin web session auth to work on auth:sanctum API routes.
+        $middleware->statefulApi();
+
         $middleware->alias([
             'role' => CheckRole::class,
             'web.api' => WebApiMiddleware::class,

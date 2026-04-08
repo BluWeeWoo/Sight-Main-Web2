@@ -8,9 +8,11 @@ class Prescription extends Model
 {
     protected $table = 'prescription';
     protected $primaryKey = 'recommendation_id';
+    public $incrementing = false;
     public $timestamps = false;
 
     protected $fillable = [
+        'recommendation_id',
         'link_id',
         'advice_text',
         'date_issued',

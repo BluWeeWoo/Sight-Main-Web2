@@ -354,7 +354,12 @@
                                 </div>
                             </div>
 
-                            <button class="btn btn-light w-100 text-start p-3 border-3" style="border-style: dashed !important; border-color: #e2e8f0 !important;">
+                            <button
+                                class="btn btn-light w-100 text-start p-3 border-3"
+                                style="border-style: dashed !important; border-color: #e2e8f0 !important;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#recommendationModal"
+                            >
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span>Send Recommendations to Patient</span>
                                     <i class="bi bi-chevron-down"></i>
@@ -366,7 +371,7 @@
                         <div class="tab-pane fade" id="activity">
                             <h5 class="fw-bold mb-4">Recent Activity</h5>
                             @if(!empty($dashboardData['activity_items']))
-                                @foreach(array_slice($dashboardData['activity_items'], 0, 4) as $activity)
+                                @foreach($dashboardData['activity_page_items'] as $activity)
                                     <div class="activity-item mb-3">
                                         <div class="d-flex gap-3">
                                             <div class="activity-icon d-flex align-items-center justify-content-center text-success">
@@ -380,26 +385,22 @@
                                     </div>
                                 @endforeach
 
-                                @if(count($dashboardData['activity_items']) > 4)
-                                    <div id="moreActivityItems" style="display: none;">
-                                        @foreach(array_slice($dashboardData['activity_items'], 4) as $activity)
-                                            <div class="activity-item mb-3">
-                                                <div class="d-flex gap-3">
-                                                    <div class="activity-icon d-flex align-items-center justify-content-center text-success">
-                                                        <i class="bi bi-{{ $activity['icon'] }}"></i>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <p class="mb-1 fw-bold" style="color: #1f2937;">{{ $activity['title'] }}</p>
-                                                        <small class="text-muted">{{ $activity['detail'] }}</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-
-                                    <button class="btn w-100 mb-4" id="loadMoreBtn" onclick="toggleMoreActivity()" style="color: var(--primary-green); background-color: #f1fcf9; border: 1px solid #a8e6e0; font-weight: 600;">
-                                        Load More Activity
-                                    </button>
+                                @if(($dashboardData['activity_total_pages'] ?? 1) > 1)
+                                    <nav aria-label="Activity pagination" class="mt-4 mb-4">
+                                        <ul class="pagination justify-content-center mb-0">
+                                            <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) <= 1 ? 'disabled' : '' }}">
+                                                <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => max(($dashboardData['activity_page'] ?? 1) - 1, 1), 'tab' => 'activity']) }}">Previous</a>
+                                            </li>
+                                            @for($page = 1; $page <= ($dashboardData['activity_total_pages'] ?? 1); $page++)
+                                                <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) === $page ? 'active' : '' }}">
+                                                    <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => $page, 'tab' => 'activity']) }}">{{ $page }}</a>
+                                                </li>
+                                            @endfor
+                                            <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) >= ($dashboardData['activity_total_pages'] ?? 1) ? 'disabled' : '' }}">
+                                                <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => min(($dashboardData['activity_page'] ?? 1) + 1, ($dashboardData['activity_total_pages'] ?? 1)), 'tab' => 'activity']) }}">Next</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
                                 @endif
                             @else
                                 <div class="activity-item mb-4">
@@ -415,7 +416,12 @@
                                 </div>
                             @endif
 
-                            <button class="btn btn-light w-100 text-start p-3 border-3" style="border-style: dashed !important; border-color: #e2e8f0 !important;">
+                            <button
+                                class="btn btn-light w-100 text-start p-3 border-3"
+                                style="border-style: dashed !important; border-color: #e2e8f0 !important;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#recommendationModal"
+                            >
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span>Send Recommendations to Patient</span>
                                     <i class="bi bi-chevron-down"></i>
@@ -428,18 +434,108 @@
         </div>
     </main>
 
+    <div class="modal fade" id="recommendationModal" tabindex="-1" aria-labelledby="recommendationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="recommendationModalLabel">Send Recommendation to Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="recommendationForm">
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                            Patient: <strong>{{ $selectedPatient['name'] ?? 'N/A' }}</strong>
+                        </p>
+                        <div class="mb-0">
+                            <label for="recommendationText" class="form-label">Recommendation</label>
+                            <textarea class="form-control" id="recommendationText" rows="5" maxlength="2000" placeholder="Type your recommendation here..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success" id="submitRecommendationBtn">Send Recommendation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function toggleMoreActivity() {
-            const moreItems = document.getElementById('moreActivityItems');
-            const loadMoreBtn = document.getElementById('loadMoreBtn');
-            
-            if (moreItems.style.display === 'none') {
-                moreItems.style.display = 'block';
-                loadMoreBtn.textContent = 'Show Less Activity';
-            } else {
-                moreItems.style.display = 'none';
-                loadMoreBtn.textContent = 'Load More Activity';
+        const selectedPatientId = <?php echo (int) ($selectedPatient['id'] ?? 0); ?>;
+        const recommendationForm = document.getElementById('recommendationForm');
+        const recommendationText = document.getElementById('recommendationText');
+        const submitRecommendationBtn = document.getElementById('submitRecommendationBtn');
+        const recommendationModalEl = document.getElementById('recommendationModal');
+
+        function showDashboardAlert(type, message) {
+            const cls = type === 'success' ? 'alert-success' : 'alert-danger';
+            const alert = document.createElement('div');
+            alert.className = `alert ${cls} alert-dismissible fade show position-fixed`;
+            alert.style.top = '80px';
+            alert.style.right = '20px';
+            alert.style.zIndex = '1060';
+            alert.style.maxWidth = '420px';
+            alert.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            document.body.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        if (recommendationForm) {
+            recommendationForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                if (!selectedPatientId) {
+                    showDashboardAlert('error', 'No patient selected.');
+                    return;
+                }
+
+                const plan = recommendationText.value.trim();
+                if (!plan) {
+                    showDashboardAlert('error', 'Recommendation text is required.');
+                    return;
+                }
+
+                submitRecommendationBtn.disabled = true;
+                submitRecommendationBtn.textContent = 'Sending...';
+
+                try {
+                    const response = await fetch(`/doctor/patient/${selectedPatientId}/health-plan`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ plan })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Failed to send recommendation.');
+                    }
+
+                    showDashboardAlert('success', 'Recommendation sent successfully.');
+                    recommendationText.value = '';
+                    const modalInstance = bootstrap.Modal.getInstance(recommendationModalEl);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                } catch (error) {
+                    showDashboardAlert('error', error.message || 'Failed to send recommendation.');
+                } finally {
+                    submitRecommendationBtn.disabled = false;
+                    submitRecommendationBtn.textContent = 'Send Recommendation';
+                }
+            });
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'activity') {
+            const activityTabTrigger = document.querySelector('[data-bs-target="#activity"]');
+            if (activityTabTrigger) {
+                bootstrap.Tab.getOrCreateInstance(activityTabTrigger).show();
             }
         }
 

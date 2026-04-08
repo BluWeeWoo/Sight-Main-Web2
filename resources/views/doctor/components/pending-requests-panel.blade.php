@@ -68,7 +68,8 @@ async function loadPendingRequests() {
         if (!response.ok) {
             console.error('Failed to load requests:', response.status);
             document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+            showAlert('error', `Unable to load incoming requests (HTTP ${response.status}). Please refresh or sign in again.`);
             return;
         }
 

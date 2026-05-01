@@ -34,8 +34,8 @@ class DoctorController extends Controller
         }
 
         $patients = $patientModels->map(function (ChildProfile $child) {
-            $latestScore = $child->eyeHealthScores()->orderByDesc('recorded_date')->first();
-            $latestScoreValue = $latestScore?->daily_score;
+            $latestMetric = $child->eyeHealthMetrics()->orderByDesc('timestamp')->first();
+            $latestScoreValue = $latestMetric?->health_score;
 
             return [
                 'id' => $child->child_id,
@@ -198,21 +198,14 @@ class DoctorController extends Controller
         $startDate = now()->subDays(6)->startOfDay();
         $endDate = now()->endOfDay();
 
+        // UPDATED: Added AVG(health_score) and MAX(coins) to the query
         $metricRows = $child->eyeHealthMetrics()
             ->whereBetween('timestamp', [$startDate, $endDate])
-            ->selectRaw('DATE(`timestamp`) as metric_date, AVG(avg_blink_rate) as avg_blink_rate, AVG(avg_distance) as avg_distance, AVG(screen_time_minutes) as screen_time_minutes, SUM(strain_events) as strain_events')
+            ->selectRaw('DATE(`timestamp`) as metric_date, AVG(avg_blink_rate) as avg_blink_rate, AVG(avg_distance) as avg_distance, AVG(screen_time_minutes) as screen_time_minutes, SUM(strain_events) as strain_events, AVG(health_score) as health_score, MAX(coins) as coins')
             ->groupByRaw('DATE(`timestamp`)')
             ->orderBy('metric_date')
             ->get()
             ->keyBy('metric_date');
-
-        $scoreRows = $child->eyeHealthScores()
-            ->whereBetween('recorded_date', [$startDate, $endDate])
-            ->selectRaw('DATE(recorded_date) as score_date, AVG(daily_score) as daily_score')
-            ->groupByRaw('DATE(recorded_date)')
-            ->orderBy('score_date')
-            ->get()
-            ->keyBy('score_date');
 
         $labels = [];
         $blinkRates = [];
@@ -220,20 +213,24 @@ class DoctorController extends Controller
         $screenTimes = [];
         $strainEvents = [];
         $healthScores = [];
+        $coinsData = [];
         $activities = [];
         $previousScore = null;
 
         foreach (CarbonPeriod::create($startDate->toDateString(), $endDate->toDateString()) as $date) {
             $key = $date->format('Y-m-d');
             $metric = $metricRows->get($key);
-            $score = $scoreRows->get($key);
 
             $labels[] = $date->format('D');
             $blinkRates[] = $metric ? round((float) $metric->avg_blink_rate, 1) : null;
             $distances[] = $metric ? round((float) $metric->avg_distance, 1) : null;
             $screenTimes[] = $metric ? round((float) $metric->screen_time_minutes, 1) : null;
             $strainEvents[] = $metric ? (int) $metric->strain_events : null;
-            $healthScores[] = $score ? round((float) $score->daily_score, 1) : null;
+            
+            // Extract the new Gamification fields
+            $currentHealth = $metric && $metric->health_score !== null ? round((float) $metric->health_score, 1) : null;
+            $healthScores[] = $currentHealth;
+            $coinsData[] = $metric && $metric->coins !== null ? (int) $metric->coins : null;
 
             if ($metric) {
                 $blinkRate = (float) $metric->avg_blink_rate;
@@ -278,9 +275,8 @@ class DoctorController extends Controller
                 }
             }
 
-            if ($score && $previousScore !== null) {
-                $currentScore = (float) $score->daily_score;
-                $difference = round($currentScore - $previousScore, 1);
+            if ($currentHealth !== null && $previousScore !== null) {
+                $difference = round($currentHealth - $previousScore, 1);
 
                 if (abs($difference) >= 2) {
                     $activities[] = [
@@ -292,8 +288,8 @@ class DoctorController extends Controller
                 }
             }
 
-            if ($score) {
-                $previousScore = (float) $score->daily_score;
+            if ($currentHealth !== null) {
+                $previousScore = $currentHealth;
             }
         }
 
@@ -328,9 +324,12 @@ class DoctorController extends Controller
         }, $activities);
 
         $metricValues = $metricRows->values();
-        $scoreValues = $scoreRows->values();
-        $healthScoreValue = $this->latestNumericValue($scoreValues->pluck('daily_score')->all());
-        $averageScore = $this->averageNumericValue($scoreValues->pluck('daily_score')->all());
+        
+        // Calculate averages based entirely on the new metrics payload
+        $healthScoreValue = $this->latestNumericValue($metricValues->pluck('health_score')->all());
+        $averageScore = $this->averageNumericValue($metricValues->pluck('health_score')->all());
+        $latestCoins = $this->latestNumericValue($metricValues->pluck('coins')->all());
+        
         $averageBlinkRate = $this->averageNumericValue($metricValues->pluck('avg_blink_rate')->all());
         $averageDistance = $this->averageNumericValue($metricValues->pluck('avg_distance')->all());
         $averageScreenTime = $this->averageNumericValue($metricValues->pluck('screen_time_minutes')->all());
@@ -342,6 +341,7 @@ class DoctorController extends Controller
             'health_grade' => $this->gradeFromScore($healthScoreValue ?? $averageScore),
             'health_score' => $healthScoreValue ?? $averageScore,
             'health_score_display' => $this->formatPercentage($healthScoreValue ?? $averageScore),
+            'latest_coins' => $latestCoins ?? 0, // ADDED
             'screen_time_display' => $this->formatDuration($averageScreenTime),
             'blink_rate_display' => $this->formatRate($averageBlinkRate),
             'distance_display' => $this->formatDistance($averageDistance),
@@ -354,6 +354,7 @@ class DoctorController extends Controller
             'screen_times' => $screenTimes,
             'strain_events' => $strainEvents,
             'health_scores' => $healthScores,
+            'coins_data' => $coinsData, // ADDED
             'activity_items' => $activities,
             'has_data' => ! empty($labels) && $metricValues->isNotEmpty(),
         ];

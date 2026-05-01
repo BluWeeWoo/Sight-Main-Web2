@@ -238,10 +238,19 @@
                                         <h6 class="fw-bold mb-1">Overall Health Grade: {{ $dashboardData['health_grade'] }}</h6>
                                         <p class="text-muted small mb-0">Live summary for the selected patient based on the last 7 days of records.</p>
                                     </div>
-                                    <div class="text-center">
-                                        <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
-                                        <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">{{ $dashboardData['health_score_display'] }}</div>
-                                        <div class="small text-muted">Health Score</div>
+                                    <div class="d-flex align-items-center">
+                                        <!-- Health Score -->
+                                        <div class="text-center pe-4 border-end">
+                                            <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
+                                            <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">{{ $dashboardData['health_score_display'] }}</div>
+                                            <div class="small text-muted">Health Score</div>
+                                        </div>
+                                        <!-- Coins Balance -->
+                                        <div class="text-center ps-4">
+                                            <span class="health-badge" style="background-color: #fef08a; color: #b45309;"><i class="bi bi-coin"></i> Economy</span>
+                                            <div class="h2 fw-bold mb-0 mt-2" style="color: #d97706;">{{ number_format($dashboardData['latest_coins']) }}</div>
+                                            <div class="small text-muted">Total Coins</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

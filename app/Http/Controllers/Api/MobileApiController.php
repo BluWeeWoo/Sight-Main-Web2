@@ -39,11 +39,13 @@ class MobileApiController extends Controller
     public function syncMetrics(Request $request, $child_id)
     {
         $request->validate([
-            'metrics' => 'required|array',
+            'metrics' => 'required|array|min:1',
             'metrics.*.avg_blink_rate' => 'nullable|numeric',
             'metrics.*.avg_distance' => 'nullable|numeric',
             'metrics.*.strain_events' => 'nullable|integer',
             'metrics.*.screen_time_minutes' => 'nullable|integer',
+            'metrics.*.health_score' => 'nullable|integer',
+            'metrics.*.coins' => 'nullable|integer',
             'metrics.*.timestamp' => 'required|date_format:Y-m-d H:i:s',
         ]);
 
@@ -68,6 +70,8 @@ class MobileApiController extends Controller
             'metrics.*.avg_distance' => 'nullable|numeric',
             'metrics.*.strain_events' => 'nullable|integer',
             'metrics.*.screen_time_minutes' => 'nullable|integer',
+            'metrics.*.health_score' => 'nullable|integer',
+            'metrics.*.coins' => 'nullable|integer',
             'metrics.*.timestamp' => 'required|date_format:Y-m-d H:i:s',
         ]);
 

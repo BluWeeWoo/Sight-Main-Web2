@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\RuleEngineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class GuardianApiController extends Controller
 {
@@ -14,20 +16,25 @@ class GuardianApiController extends Controller
     }
 
     /**
-     * POST /api/web/guardian/register
-     * Creates a new Guardian account
+     * POST /api/mobile/guardian/register
+     * Mobile-specific guardian registration (bypasses name & confirmation requirements)
      */
-    public function register(Request $request)
+    public function registerMobile(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:user,email',
-            'password' => 'required|string|min:8|confirmed',
-            'contact_number' => 'nullable|string|max:11',
+            'password' => 'required|string|min:6', // Flutter enforces min 6
         ]);
 
-        $result = $this->ruleEngineService->registerGuardian($validated);
+        $payload = [
+            'first_name' => 'Guardian', // Default placeholder
+            'last_name' => '',
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'contact_number' => null,
+        ];
 
+        $result = $this->ruleEngineService->registerGuardian($payload);
         return response()->json($result['body'], $result['http_code']);
     }
 
@@ -98,5 +105,80 @@ class GuardianApiController extends Controller
         $result = $this->ruleEngineService->deleteChild((int) Auth::id(), (int) $child_id);
 
         return response()->json($result['body'], $result['http_code']);
+    }
+
+    /**
+     * POST /api/mobile/child/register
+     */
+    public function addChildMobile(Request $request)
+    {
+        $validated = $request->validate([
+            'guardian_email' => 'required|email|exists:user,email',
+            'display_name' => 'required|string|max:255',
+            'login_code' => 'required|string',
+            'password' => 'required|string',
+            'child_id' => 'nullable|integer'
+        ]);
+
+        $guardianUser = User::where('email', $validated['guardian_email'])->first();
+        
+        $payload = [
+            'first_name' => $validated['display_name'], // FIXED: changed from 'name'
+            'last_name' => '',                          // FIXED: added to prevent 'Unknown'
+            'birthdate' => '2015-01-01', 
+            'mobile_login_code' => $validated['login_code'],
+            'mobile_password' => $validated['password']
+        ];
+
+        $result = $this->ruleEngineService->addChild((int) $guardianUser->user_id, $payload);
+        return response()->json($result['body'], $result['http_code']);
+    }
+
+    /**
+     * POST /api/mobile/guardian/verify-email
+     * Simple email verification toggle for mobile
+     */
+    public function verifyEmailMobile(Request $request)
+    {
+        $request->validate(['email' => 'required|email|exists:user,email']);
+        
+        $user = User::where('email', $request->email)->first();
+        $user->email_verified_at = now();
+        $user->save();
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'Email verified successfully.'
+        ], 200);
+    }
+
+    /**
+     * POST /api/mobile/guardian/reset-password
+     * Mobile-specific password reset
+     */
+    public function resetPasswordMobile(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:user,email',
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->current_password, $user->password_hash)) {
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'Invalid credentials.'
+            ], 401);
+        }
+
+        $user->password_hash = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'Password updated successfully.'
+        ], 200);
     }
 }

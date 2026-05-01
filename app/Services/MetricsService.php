@@ -11,26 +11,32 @@ use Illuminate\Support\Carbon;
 
 class MetricsService
 {
-    public function loginChild(string $loginCode, ?string $deviceId): array
+    public function loginChild(string $loginCode, string $password, ?string $deviceId): array
     {
-        $child = ChildProfile::where('login_code', $loginCode)->first();
+        $child = ChildProfile::with('guardians.user')->where('login_code', $loginCode)->first();
 
         if (!$child) {
             return $this->response('error', 'Invalid login code', null, ['login_code' => ['Invalid login code']], 401);
+        }
+
+        $childUser = User::find($child->user_id);
+
+        // NEW: Verify Password
+        if (!$childUser || !\Illuminate\Support\Facades\Hash::check($password, $childUser->password_hash)) {
+            return $this->response('error', 'Invalid password', null, ['password' => ['Invalid password']], 401);
         }
 
         if ($deviceId) {
             $child->update(['device_id' => $deviceId]);
         }
 
-        $childUser = User::find($child->user_id);
+        // Extract guardian email for Flutter caching
+        $guardianEmail = $child->guardians->first()?->user?->email ?? '';
 
         return $this->response('success', 'Child login successful', [
-            'child' => [
-                'child_id' => $child->child_id,
-                'name' => $childUser->display_name ?? 'Child',
-                'birthdate' => $child->birthdate,
-            ],
+            'display_name' => $childUser->display_name ?? 'Child',
+            'child_id' => $child->child_id,
+            'guardian_email' => $guardianEmail,
         ]);
     }
 

@@ -4,10 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
-            background-color: #fafafa;
+            background: 
+                radial-gradient(circle at 90% 50%, rgba(42, 131, 68, 0.2) 0%, transparent 35%),
+                radial-gradient(circle at 50% 50%, #E4FFD8 0%, transparent 60%),
+                radial-gradient(circle at 15% 20%, rgba(251, 207, 232, 0.6) 0%, transparent 20%);
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-lumi-text {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30vw;
+            font-weight: 900;
+            font-family: 'Fredoka', sans-serif;
+            color: #E4FFD8;
+            z-index: -1;
+            letter-spacing: 25px;
+            user-select: none;
+            transition: all 0.6s ease;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
+            text-shadow: 
+                5px 15px 30px rgba(0, 0, 0, 0.05),
+                -1px -1px 0 rgba(255, 255, 255, 0.4);
         }
         
         .container-wrapper {
@@ -258,6 +282,7 @@
     </style>
 </head>
 <body>
+    <div class="bg-lumi-text">LUMI</div>
     <div class="container-wrapper">
         <div class="card-container">
             <div class="card-header">

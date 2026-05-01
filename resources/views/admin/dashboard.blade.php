@@ -6,6 +6,7 @@
     <title>Admin Dashboard</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script defer src="{{ asset('assets/js/alpine.min.js') }}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,8 +16,33 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #F9FFFB;
+            background: 
+                radial-gradient(circle at 90% 50%, rgba(42, 131, 68, 0.2) 0%, transparent 35%),
+                radial-gradient(circle at 50% 50%, #E4FFD8 0%, transparent 60%),
+                radial-gradient(circle at 15% 20%, rgba(251, 207, 232, 0.6) 0%, transparent 20%);
             color: #1f2937;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bg-lumi-text {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30vw;
+            font-weight: 900;
+            font-family: 'Fredoka', sans-serif;
+            color: #E4FFD8;
+            z-index: -1;
+            letter-spacing: 25px;
+            user-select: none;
+            transition: all 0.6s ease;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
+            text-shadow: 
+                5px 15px 30px rgba(0, 0, 0, 0.05),
+                -1px -1px 0 rgba(255, 255, 255, 0.4);
+            pointer-events: none;
         }
 
         .container {
@@ -803,6 +829,7 @@
     </style>
 </head>
 <body>
+    <div class="bg-lumi-text">LUMI</div>
     <div class="container" x-data="professionalsManager()">
         <div class="toast-container" x-cloak>
             <template x-for="toast in toasts" :key="toast.id">

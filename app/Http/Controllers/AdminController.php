@@ -232,7 +232,6 @@ class AdminController extends Controller
             Hash::make($tempPassword),
             'Doctor',
             [
-                'user_id' => $this->nextPrimaryKey('user', 'user_id'),
                 'status' => 'pending',
                 'email_verified_at' => null,
                 'must_change_password' => 1,
@@ -259,7 +258,6 @@ class AdminController extends Controller
                 $doctorProfile->save();
             } else {
                 DB::table('doctor_profile')->insert(array_merge([
-                    'doctor_id' => $this->nextPrimaryKey('doctor_profile', 'doctor_id'),
                     'user_id' => $professional->user_id,
                 ], $profilePayload));
             }
@@ -355,7 +353,6 @@ class AdminController extends Controller
                 $doctorProfile->save();
             } else {
                 DB::table('doctor_profile')->insert(array_merge([
-                    'doctor_id' => $this->nextPrimaryKey('doctor_profile', 'doctor_id'),
                     'user_id' => $professional->user_id,
                 ], $profilePayload));
             }
@@ -479,7 +476,6 @@ class AdminController extends Controller
                     Hash::make($validated['password']),
                     'Admin',
                     [
-                        'user_id' => $this->nextPrimaryKey('user', 'user_id'),
                         'status' => 'active',
                         'email_verified_at' => now(),
                     ]
@@ -491,7 +487,6 @@ class AdminController extends Controller
 
                 if (Schema::hasTable('admin_profile')) {
                     $profilePayload = [
-                        'admin_id' => $this->nextPrimaryKey('admin_profile', 'admin_id'),
                         'user_id' => $createdAdmin->user_id,
                     ];
 
@@ -672,15 +667,6 @@ class AdminController extends Controller
         }
 
         return $payload;
-    }
-
-    /**
-     * Generate next primary key for schemas without auto-increment.
-     */
-    private function nextPrimaryKey(string $table, string $column): int
-    {
-        $max = DB::table($table)->max($column);
-        return ((int) $max) + 1;
     }
 
     /**

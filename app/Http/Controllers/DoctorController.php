@@ -120,10 +120,7 @@ class DoctorController extends Controller
             ], 403);
         }
 
-        $nextRecommendationId = ((int) Prescription::max('recommendation_id')) + 1;
-
         $recommendation = Prescription::create([
-            'recommendation_id' => $nextRecommendationId,
             'link_id' => $link->link_id,
             'advice_text' => trim($validated['plan']),
             'date_issued' => now(),

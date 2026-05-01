@@ -47,11 +47,16 @@ Route::prefix('web')->middleware(['auth:sanctum', 'web.api'])->group(function ()
         Route::post('/create-professional', [AdminApiController::class, 'createProfessional']);
     });
 });
-
 // 📱 MOBILE-ONLY CLOUD API (Flutter App Only)
 Route::prefix('mobile')->group(function () {
     // Child Login via Code
     Route::post('/child/login', [MobileApiController::class, 'loginChild']);
+    
+    // --- NEW: Mobile Authentication Routes ---
+    Route::post('/guardian/register', [GuardianApiController::class, 'registerMobile']);
+    Route::post('/child/register', [GuardianApiController::class, 'addChildMobile']);
+    Route::post('/guardian/verify-email', [GuardianApiController::class, 'verifyEmailMobile']);
+    Route::post('/guardian/reset-password', [GuardianApiController::class, 'resetPasswordMobile']);
     
     // Sync endpoints (Authenticated)
     Route::middleware('auth:sanctum')->group(function () {

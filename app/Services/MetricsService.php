@@ -55,6 +55,8 @@ class MetricsService
                 'avg_distance' => $metric['avg_distance'] ?? null,
                 'strain_events' => $metric['strain_events'] ?? null,
                 'screen_time_minutes' => $metric['screen_time_minutes'] ?? 0,
+                'health_score'        => $metric['health_score'] ?? null,
+                'coins'                => $metric['coins'] ?? null,
                 'timestamp' => $metric['timestamp'],
             ]);
             $inserted++;
@@ -115,6 +117,8 @@ class MetricsService
                 'avg_distance' => $metric['avg_distance'] ?? null,
                 'strain_events' => $metric['strain_events'] ?? null,
                 'screen_time_minutes' => $metric['screen_time_minutes'] ?? 0,
+                'health_score'        => $metric['health_score'] ?? null,
+                'coins'                => $metric['coins'] ?? null,
                 'timestamp' => $timestamp,
                 'created_at' => now(),
             ];

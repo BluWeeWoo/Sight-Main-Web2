@@ -17,6 +17,8 @@ class EyeHealthMetrics extends Model
         'strain_events',
         'timestamp',
         'screen_time_minutes',
+        'health_score',
+        'coins',
     ];
 
     protected $casts = [

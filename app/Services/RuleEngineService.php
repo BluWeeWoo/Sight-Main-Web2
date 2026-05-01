@@ -72,7 +72,7 @@ class RuleEngineService
             $childUser = User::create([
                 'first_name' => $firstName,
                 'last_name' => $lastName,
-                'email' => 'child_' . uniqid() . '@sightapp.local',
+                'email' => null,
                 'password_hash' => $passwordHash,
                 'role' => 'Child',
             ]);

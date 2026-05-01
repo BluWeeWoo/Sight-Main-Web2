@@ -17,18 +17,19 @@ class GuardianApiController extends Controller
 
     /**
      * POST /api/mobile/guardian/register
-     * Mobile-specific guardian registration (bypasses name & confirmation requirements)
      */
     public function registerMobile(Request $request)
     {
         $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:user,email',
-            'password' => 'required|string|min:6', // Flutter enforces min 6
+            'password' => 'required|string|min:6',
         ]);
 
         $payload = [
-            'first_name' => 'Guardian', // Default placeholder
-            'last_name' => '',
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
             'contact_number' => null,
@@ -114,18 +115,18 @@ class GuardianApiController extends Controller
     {
         $validated = $request->validate([
             'guardian_email' => 'required|email|exists:user,email',
-            'display_name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'login_code' => 'required|string',
             'password' => 'required|string',
-            'child_id' => 'nullable|integer'
         ]);
 
         $guardianUser = User::where('email', $validated['guardian_email'])->first();
         
         $payload = [
-            'first_name' => $validated['display_name'], // FIXED: changed from 'name'
-            'last_name' => '',                          // FIXED: added to prevent 'Unknown'
-            'birthdate' => '2015-01-01', 
+            'first_name' => $validated['first_name'], 
+            'last_name' => $validated['last_name'], 
+            'birthdate' => '2015-01-01', // Default fallback
             'mobile_login_code' => $validated['login_code'],
             'mobile_password' => $validated['password']
         ];
@@ -133,7 +134,7 @@ class GuardianApiController extends Controller
         $result = $this->ruleEngineService->addChild((int) $guardianUser->user_id, $payload);
         return response()->json($result['body'], $result['http_code']);
     }
-
+    
     /**
      * POST /api/mobile/guardian/verify-email
      * Simple email verification toggle for mobile

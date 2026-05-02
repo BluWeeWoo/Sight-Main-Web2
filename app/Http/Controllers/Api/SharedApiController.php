@@ -62,6 +62,9 @@ class SharedApiController extends Controller
             'locked_until' => null
         ]);
 
+        $user->tokens()->where('name', 'guardian-mobile')->delete();
+        $token = $user->createToken('guardian-mobile')->plainTextToken;
+
         // Create token
         return response()->json([
             'message' => 'Login successful',
@@ -72,7 +75,8 @@ class SharedApiController extends Controller
                 'first_name' => $user->first_name ?? null,
                 'last_name' => $user->last_name ?? null,
                 'display_name' => $user->display_name,
-            ]
+            ],
+            'token' => $token // <-- RETURN IT TO FLUTTER
         ], 200);
     }
 

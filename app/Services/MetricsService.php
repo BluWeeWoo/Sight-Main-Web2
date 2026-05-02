@@ -31,12 +31,14 @@ class MetricsService
         }
 
         // Extract guardian email for Flutter caching
-        $guardianEmail = $child->guardians->first()?->user?->email ?? '';
+        $childUser->tokens()->where('name', 'child-mobile')->delete(); 
+        $token = $childUser->createToken('child-mobile')->plainTextToken;
 
         return $this->response('success', 'Child login successful', [
             'display_name' => $childUser->display_name ?? 'Child',
             'child_id' => $child->child_id,
             'guardian_email' => $guardianEmail,
+            'access_token' => $token,
         ]);
     }
 

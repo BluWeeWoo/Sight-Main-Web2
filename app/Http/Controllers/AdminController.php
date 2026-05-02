@@ -619,15 +619,19 @@ class AdminController extends Controller
         $user = User::findOrFail($userId);
 
         if (!Schema::hasColumn('user', 'email_verified_at')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Verification column is missing in the current database schema.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Verification column is missing.'], 422);
         }
 
         // Toggle between verified (now) and unverified (null)
         $user->email_verified_at = $user->email_verified_at ? null : now();
         $user->save();
+
+        // Sync the doctor_profile.is_validated column
+        $doctorProfile = \App\Models\DoctorProfile::where('user_id', $userId)->first();
+        if ($doctorProfile) {
+            $doctorProfile->is_validated = $user->email_verified_at ? 1 : 0;
+            $doctorProfile->save();
+        }
 
         return response()->json([
             'success' => true,

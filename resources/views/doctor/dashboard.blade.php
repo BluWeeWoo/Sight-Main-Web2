@@ -48,7 +48,7 @@
         
         .sidebar-container {
             background: white;
-            border: none;
+            border: 1px solid rgba(82, 114, 103, 0.2);
             border-radius: 1.5rem;
             height: calc(100vh - 120px);
             overflow: hidden;
@@ -91,7 +91,7 @@
         .compliance-bar { height: 4px; background: #e2e8f0; border-radius: 2px; margin-top: 0.35rem; overflow: hidden; }
         .compliance-bar-fill { height: 100%; background: var(--primary-green); width: 75%; }
 
-        .card { border-radius: 1rem; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .card { border-radius: 1rem; border: 1px solid rgba(82, 114, 103, 0.2) !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         .header-avatar { background-color: #f1f5f9; color: var(--primary-green); cursor: pointer; transition: transform 0.2s; }
         .header-avatar:hover { transform: scale(1.05); }
         
@@ -251,22 +251,33 @@
                     
                     @if(empty($patients) || $selectedPatient === null)
                         <!-- ZERO STATE: No Patients Selected / Available -->
-                        <div class="d-flex flex-column align-items-center justify-content-center h-100 py-5 text-center">
-                            <div class="rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
-                                <i class="bi bi-people fs-1 text-secondary"></i>
-                            </div>
-                            <h3 class="fw-bold mb-2">Welcome, {{ auth()->user()->first_name ?? 'Doctor' }}</h3>
-                            <p class="text-muted mb-4">Select a patient from the sidebar to view their eye health analytics, or review your pending incoming requests.</p>
-                            
-                            @if(isset($pendingRequests) && count($pendingRequests) > 0)
-                                <button class="btn btn-success px-4 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#requestsModal">
-                                    <i class="bi bi-envelope-open me-2"></i> View {{ count($pendingRequests) }} Pending Request(s)
-                                </button>
-                            @else
-                                <div class="alert alert-light border text-muted">
-                                    <i class="bi bi-info-circle me-2"></i> No pending requests at this time.
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 py-4">
+                            <!-- NEW: Frosted glass container with max-width and subtle borders -->
+                            <div class="card shadow-sm w-100 text-center" style="max-width: 550px; border-radius: 1.5rem; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);">
+                                <div class="card-body p-5">
+                                    
+                                    <div class="rounded-circle shadow-sm d-flex align-items-center justify-content-center mb-4 mx-auto" style="width: 80px; height: 80px; background-color: #f0faf8; border: 1px solid rgba(82, 114, 103, 0.2);">
+                                        <i class="bi bi-people fs-1" style="color: var(--primary-green);"></i>
+                                    </div>
+                                    
+                                    <h3 class="fw-bold mb-3">Welcome, {{ auth()->user()->first_name ?? 'Doctor' }}</h3>
+                                    
+                                    <p class="text-muted mb-4 px-md-4" style="line-height: 1.6;">
+                                        Select a patient from the sidebar to view their eye health analytics, or review your pending incoming requests.
+                                    </p>
+                                    
+                                    @if(isset($pendingRequests) && count($pendingRequests) > 0)
+                                        <button class="btn px-4 py-2 rounded-pill shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#requestsModal" style="background-color: var(--primary-green); color: white;">
+                                            <i class="bi bi-envelope-open me-2"></i> View {{ count($pendingRequests) }} Pending Request(s)
+                                        </button>
+                                    @else
+                                        <div class="rounded-pill mx-auto px-4 py-2 text-muted d-inline-block shadow-sm" style="background-color: #f8fafc; border: 1px solid rgba(82, 114, 103, 0.2); font-size: 0.9rem;">
+                                            <i class="bi bi-info-circle me-2" style="color: var(--primary-green);"></i> No pending requests at this time.
+                                        </div>
+                                    @endif
+                                    
                                 </div>
-                            @endif
+                            </div>
                         </div>
                     @else
                         <!-- PATIENT SELECTED STATE -->

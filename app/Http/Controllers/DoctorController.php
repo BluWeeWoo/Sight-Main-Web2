@@ -189,14 +189,18 @@ class DoctorController extends Controller
             return response()->json(['error' => 'Patient not found'], 404);
         }
 
-        // Get actual compliance data from database
-        $scores = $child->eyeHealthScores()->orderBy('recorded_date', 'desc')->limit(7)->get();
+        $metrics = $child->eyeHealthMetrics()
+            ->selectRaw('DATE(timestamp) as date, AVG(health_score) as avg_score')
+            ->groupByRaw('DATE(timestamp)')
+            ->orderByRaw('DATE(timestamp) DESC')
+            ->limit(7)
+            ->get();
 
         return response()->json([
-            'dates' => $scores->map(fn($s) => $s->recorded_date->format('M d'))->reverse()->values(),
-            'scores' => $scores->map(fn($s) => $s->daily_score)->reverse()->values(),
-            'average' => $scores->avg('daily_score') ?? 0,
-            'count' => $scores->count(),
+            'dates' => $metrics->map(fn($m) => \Carbon\Carbon::parse($m->date)->format('M d'))->reverse()->values(),
+            'scores' => $metrics->map(fn($m) => round((float) $m->avg_score))->reverse()->values(),
+            'average' => round($metrics->avg('avg_score') ?? 0),
+            'count' => $metrics->count(),
         ]);
     }
 

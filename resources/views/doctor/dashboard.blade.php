@@ -668,8 +668,8 @@
         // Handle Accept/Decline requests via the existing API
         async function respondToRequest(linkId, action) {
             try {
-                // Laravel route requires PUT /api/web/doctor/requests/{link_id}
-                const response = await fetch(`/api/web/doctor/requests/${linkId}`, {
+                // Laravel route requires PUT /doctor/requests/{link_id}
+                const response = await fetch(`/doctor/requests/${linkId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',

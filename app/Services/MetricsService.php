@@ -49,6 +49,21 @@ class MetricsService
         if (!$child) {
             return $this->response('error', 'Child not found', null, ['child_id' => ['Child not found']], 404);
         }
+        $isChild = (int) $child->user_id === (int) $authUserId;
+        
+        $isLinkedGuardian = \Illuminate\Support\Facades\DB::table('guardian_child_link')
+            ->join('guardian_profile', 'guardian_child_link.guardian_id', '=', 'guardian_profile.guardian_id')
+            ->where('guardian_child_link.child_id', $childId)
+            ->where('guardian_profile.user_id', $authUserId)
+            ->exists();
+
+        if (!$isChild && !$isLinkedGuardian) {
+            return $this->response('error', 'Unauthorized', null, ['authorization' => ['Unauthorized']], 403);
+        }
+
+        if (empty($metrics)) {
+            return $this->response('error', 'Metrics is empty', null, ['metrics' => ['Metrics is empty']], 400);
+        }
 
         if ((int) $child->user_id !== (int) $authUserId) {
             return $this->response('error', 'Unauthorized', null, ['authorization' => ['Unauthorized']], 403);
@@ -136,7 +151,6 @@ class MetricsService
                 'health_score'        => $metric['health_score'] ?? null,
                 'coins'                => $metric['coins'] ?? null,
                 'timestamp' => $timestamp,
-                'created_at' => now(),
             ];
         }
 

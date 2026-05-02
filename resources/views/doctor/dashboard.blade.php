@@ -23,6 +23,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             position: relative;
             overflow: hidden;
+            height: 100vh;
         }
         
         .bg-lumi-text {
@@ -91,7 +92,8 @@
         .compliance-bar-fill { height: 100%; background: var(--primary-green); width: 75%; }
 
         .card { border-radius: 1rem; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .header-avatar { background-color: #f1f5f9; color: var(--primary-green); }
+        .header-avatar { background-color: #f1f5f9; color: var(--primary-green); cursor: pointer; transition: transform 0.2s; }
+        .header-avatar:hover { transform: scale(1.05); }
         
         .nav-tabs .nav-link {
             border: none;
@@ -124,7 +126,7 @@
 
         .chart-container { position: relative; height: 300px; }
         
-        .tab-content-container { max-height: calc(100vh - 120px); overflow-y: auto; }
+        .tab-content-container { max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 10px;}
 
         .activity-item {
             background: white;
@@ -144,6 +146,20 @@
             border-radius: 0.5rem;
             flex-shrink: 0;
         }
+
+        .bell-icon-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            background: white;
+            transition: all 0.2s;
+        }
+        .bell-icon-btn:hover {
+            background: #f8fafc;
+        }
     </style>
 </head>
 <body>
@@ -156,15 +172,18 @@
                     <p class="text-muted small mb-0">Patient monitoring system</p>
                 </div>
                 <div class="d-flex align-items-center gap-4">
-                    <button class="btn btn-light position-relative rounded-circle p-2" data-bs-toggle="modal" data-bs-target="#requestsModal" style="border: 1px solid var(--border-color);">
+                    <!-- Notification Bell -->
+                    <button class="btn bell-icon-btn position-relative rounded-circle p-0" data-bs-toggle="modal" data-bs-target="#requestsModal">
                         <i class="bi bi-bell fs-5 text-secondary"></i>
                         @if(isset($pendingRequests) && count($pendingRequests) > 0)
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
                                 {{ count($pendingRequests) }}
                             </span>
                         @endif
                     </button>
-                    <div class="d-flex align-items-center gap-3">
+
+                    <!-- Profile Trigger -->
+                    <div class="d-flex align-items-center gap-3" data-bs-toggle="modal" data-bs-target="#accountModal" style="cursor: pointer;">
                         <div class="rounded-circle header-avatar d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
                             {{ auth()->user()->initials ?? 'DR' }}
                         </div>
@@ -173,12 +192,6 @@
                             <p class="text-muted mb-0" style="font-size: 0.7rem;">{{ $doctorProfile->specialty ?? 'Ophthalmologist' }}</p>
                         </div>
                     </div>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                            <i class="bi bi-box-arrow-right me-2"></i> Sign Out
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>
@@ -186,6 +199,7 @@
 
     <main class="container-fluid p-4">
         <div class="row g-4">
+            <!-- Sidebar -->
             <aside class="col-lg-3">
                 <div class="sidebar-container">
                     <div class="p-4 border-bottom bg-white sticky-top">
@@ -214,7 +228,7 @@
                                                 <span>{{ $patientCompliance !== null ? $patientCompliance . '%' : '--' }}</span>
                                             </div>
                                             <div class="compliance-bar">
-                                                <div class="compliance-bar-fill" style="width: <?php echo e($complianceWidth); ?>%;"></div>
+                                                <div class="compliance-bar-fill" style="width: {{ $complianceWidth }}%;"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -231,255 +245,332 @@
                 </div>
             </aside>
 
+            <!-- Main Content Area -->
             <div class="col-lg-9">
-                <div class="tab-content-container">
-                    <!-- Patient Header Card -->
-                    <div class="card border-0 mb-4" style="background-color: #f1fcf9;">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="d-flex gap-3">
-                                    <div id="mainAvatar" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold h2 mb-0" style="width: 64px; height: 64px; background-color: var(--primary-green);">{{ $selectedPatient['initials'] ?? 'PT' }}</div>
-                                    <div>
-                                        <h3 class="h4 fw-bold mb-1" id="patientName">{{ $selectedPatient['name'] ?? 'Select a Patient' }}</h3>
-                                        @if(!empty($selectedPatient['patient_code']))
-                                            <span class="badge bg-white text-muted border fw-normal text-dark">{{ $selectedPatient['patient_code'] }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <p class="text-muted small mb-0">Guardian</p>
-                                    <p class="fw-bold mb-0" id="guardianName">{{ $selectedPatient['guardian'] ?? 'N/A' }}</p>
-                                </div>
+                <div class="tab-content-container pe-2">
+                    
+                    @if(empty($patients) || $selectedPatient === null)
+                        <!-- ZERO STATE: No Patients Selected / Available -->
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 py-5 text-center">
+                            <div class="rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                                <i class="bi bi-people fs-1 text-secondary"></i>
                             </div>
-                        </div>
-                    </div>
-
-                    @include('doctor.components.pending-requests-panel')
-
-                    <!-- Tabs -->
-                    <ul class="nav nav-tabs border-bottom-0 mb-4 gap-2" role="tablist">
-                        <li class="nav-item">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview">Overview</button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#activity">Activity Log</button>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content">
-                        <!-- Overview Tab -->
-                        <div class="tab-pane fade show active" id="overview">
-                            <!-- Health Grade Card -->
-                            <div class="card health-grade-card mb-4">
-                                <div class="card-body d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="fw-bold mb-1">Overall Health Grade: {{ $dashboardData['health_grade'] ?? 'N/A' }}</h6>
-                                        <p class="text-muted small mb-0">Live summary for the selected patient based on the last 7 days of records.</p>
-                                    </div>
-                                    <div class="d-flex align-items-center">
-                                        <!-- Health Score -->
-                                        <div class="text-center pe-4 border-end">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
-                                            <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">{{ $dashboardData['health_score_display'] ?? '--' }}</div>
-                                            <div class="small text-muted">Health Score</div>
-                                        </div>
-                                        <!-- Coins Balance -->
-                                        <div class="text-center ps-4">
-                                            <span class="health-badge" style="background-color: #fef08a; color: #b45309;"><i class="bi bi-coin"></i> Economy</span>
-                                            <div class="h2 fw-bold mb-0 mt-2" style="color: #d97706;">{{ number_format($dashboardData['latest_coins'] ?? 0) }}</div>
-                                            <div class="small text-muted">Total Coins</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Metrics Grid -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-lg-3">
-                                    <div class="card metric-card">
-                                        <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
-                                            <div class="metric-value">{{ $dashboardData['health_score_display'] ?? '--' }}</div>
-                                            <div class="metric-label">Eye Health Score</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3">
-                                    <div class="card metric-card">
-                                        <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
-                                            <div class="metric-value">{{ $dashboardData['screen_time_display'] ?? '0m' }}</div>
-                                            <div class="metric-label">Avg. Daily Screen Time</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3">
-                                    <div class="card metric-card">
-                                        <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
-                                            <div class="metric-value">{{ $dashboardData['blink_rate_display'] ?? '--/min' }}</div>
-                                            <div class="metric-label">Avg. Blink Rate</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3">
-                                    <div class="card metric-card">
-                                        <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
-                                            <div class="metric-value">{{ $dashboardData['distance_display'] ?? '--cm' }}</div>
-                                            <div class="metric-label">Avg. Viewing Distance</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Info Cards -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-lg-6">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div class="info-card-header">Screen-Time Target Compliance</div>
-                                            <div class="info-row">
-                                                <span class="info-label">Days within target:</span>
-                                                <span class="info-value">{{ $dashboardData['target_days_display'] ?? '0/7' }}</span>
-                                            </div>
-                                            <div class="info-row">
-                                                <span class="info-label">Last 7 days</span>
-                                                <span class="info-value">Live data</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-6">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div class="info-card-header">Strain Events (7 days)</div>
-                                            <div class="info-row">
-                                                <span class="info-label">Low blink rate events:</span>
-                                                <span class="info-value">{{ $dashboardData['low_blink_events'] ?? 0 }}</span>
-                                            </div>
-                                            <div class="info-row">
-                                                <span class="info-label">Distance violations</span>
-                                                <span class="info-value">{{ $dashboardData['distance_violations'] ?? 0 }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Charts -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-white border-0 py-3">
-                                    <h6 class="fw-bold mb-0">7-Day Compliance Trends - Blink Rate & Viewing Distance</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="complianceChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="card mb-4">
-                                <div class="card-header bg-white border-0 py-3">
-                                    <h6 class="fw-bold mb-0">Daily Screen Time & Strain Events</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="screenTimeChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="card mb-4">
-                                <div class="card-header bg-white border-0 py-3">
-                                    <h6 class="fw-bold mb-0">Eye Health Score Trend</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="healthScoreChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                class="btn btn-light w-100 text-start p-3 border-3"
-                                style="border-style: dashed !important; border-color: #e2e8f0 !important;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#recommendationModal"
-                            >
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>Send Recommendations to Patient</span>
-                                    <i class="bi bi-chevron-down"></i>
-                                </div>
-                            </button>
-                        </div>
-
-                        <!-- Activity Tab -->
-                        <div class="tab-pane fade" id="activity">
-                            <h5 class="fw-bold mb-4">Recent Activity</h5>
-                            @if(!empty($dashboardData['activity_items']))
-                                @foreach($dashboardData['activity_page_items'] as $activity)
-                                    <div class="activity-item mb-3">
-                                        <div class="d-flex gap-3">
-                                            <div class="activity-icon d-flex align-items-center justify-content-center text-success">
-                                                <i class="bi bi-{{ $activity['icon'] }}"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <p class="mb-1 fw-bold" style="color: #1f2937;">{{ $activity['title'] }}</p>
-                                                <small class="text-muted">{{ $activity['detail'] }}</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-
-                                @if(($dashboardData['activity_total_pages'] ?? 1) > 1)
-                                    <nav aria-label="Activity pagination" class="mt-4 mb-4">
-                                        <ul class="pagination justify-content-center mb-0">
-                                            <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) <= 1 ? 'disabled' : '' }}">
-                                                <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => max(($dashboardData['activity_page'] ?? 1) - 1, 1), 'tab' => 'activity']) }}">Previous</a>
-                                            </li>
-                                            @for($page = 1; $page <= ($dashboardData['activity_total_pages'] ?? 1); $page++)
-                                                <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) === $page ? 'active' : '' }}">
-                                                    <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => $page, 'tab' => 'activity']) }}">{{ $page }}</a>
-                                                </li>
-                                            @endfor
-                                            <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) >= ($dashboardData['activity_total_pages'] ?? 1) ? 'disabled' : '' }}">
-                                                <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => min(($dashboardData['activity_page'] ?? 1) + 1, ($dashboardData['activity_total_pages'] ?? 1)), 'tab' => 'activity']) }}">Next</a>
-                                            </li>
-                                        </ul>
-                                    </nav>
-                                @endif
+                            <h3 class="fw-bold mb-2">Welcome, {{ auth()->user()->first_name ?? 'Doctor' }}</h3>
+                            <p class="text-muted mb-4">Select a patient from the sidebar to view their eye health analytics, or review your pending incoming requests.</p>
+                            
+                            @if(isset($pendingRequests) && count($pendingRequests) > 0)
+                                <button class="btn btn-success px-4 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#requestsModal">
+                                    <i class="bi bi-envelope-open me-2"></i> View {{ count($pendingRequests) }} Pending Request(s)
+                                </button>
                             @else
-                                <div class="activity-item mb-4">
-                                    <div class="d-flex gap-3">
-                                        <div class="activity-icon d-flex align-items-center justify-content-center text-success">
-                                            <i class="bi bi-inbox"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <p class="mb-1 fw-bold" style="color: #1f2937;">No recent activity</p>
-                                            <small class="text-muted">This patient has not generated any metric events yet.</small>
-                                        </div>
-                                    </div>
+                                <div class="alert alert-light border text-muted">
+                                    <i class="bi bi-info-circle me-2"></i> No pending requests at this time.
                                 </div>
                             @endif
-
-                            <button
-                                class="btn btn-light w-100 text-start p-3 border-3"
-                                style="border-style: dashed !important; border-color: #e2e8f0 !important;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#recommendationModal"
-                            >
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>Send Recommendations to Patient</span>
-                                    <i class="bi bi-chevron-down"></i>
-                                </div>
-                            </button>
                         </div>
-                    </div>
+                    @else
+                        <!-- PATIENT SELECTED STATE -->
+                        <!-- Patient Header Card -->
+                        <div class="card border-0 mb-4" style="background-color: #f1fcf9;">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex gap-3">
+                                        <div id="mainAvatar" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold h2 mb-0" style="width: 64px; height: 64px; background-color: var(--primary-green);">{{ $selectedPatient['initials'] ?? 'PT' }}</div>
+                                        <div>
+                                            <h3 class="h4 fw-bold mb-1" id="patientName">{{ $selectedPatient['name'] ?? 'Select a Patient' }}</h3>
+                                            @if(!empty($selectedPatient['patient_code']))
+                                                <span class="badge bg-white text-muted border fw-normal text-dark">{{ $selectedPatient['patient_code'] }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <p class="text-muted small mb-0">Guardian</p>
+                                        <p class="fw-bold mb-0" id="guardianName">{{ $selectedPatient['guardian'] ?? 'N/A' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs border-bottom-0 mb-4 gap-2" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview">Overview</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#activity">Activity Log</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            <!-- Overview Tab -->
+                            <div class="tab-pane fade show active" id="overview">
+                                <!-- Health Grade Card -->
+                                <div class="card health-grade-card mb-4">
+                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="fw-bold mb-1">Overall Health Grade: {{ $dashboardData['health_grade'] ?? 'N/A' }}</h6>
+                                            <p class="text-muted small mb-0">Live summary for the selected patient based on the last 7 days of records.</p>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="text-center pe-4 border-end">
+                                                <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                                <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">{{ $dashboardData['health_score_display'] ?? '--' }}</div>
+                                                <div class="small text-muted">Health Score</div>
+                                            </div>
+                                            <div class="text-center ps-4">
+                                                <span class="health-badge" style="background-color: #fef08a; color: #b45309;"><i class="bi bi-coin"></i> Economy</span>
+                                                <div class="h2 fw-bold mb-0 mt-2" style="color: #d97706;">{{ number_format($dashboardData['latest_coins'] ?? 0) }}</div>
+                                                <div class="small text-muted">Total Coins</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Metrics Grid -->
+                                <div class="row g-3 mb-4">
+                                    <div class="col-lg-3">
+                                        <div class="card metric-card">
+                                            <div class="card-body">
+                                                <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                                <div class="metric-value">{{ $dashboardData['health_score_display'] ?? '--' }}</div>
+                                                <div class="metric-label">Eye Health Score</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="card metric-card">
+                                            <div class="card-body">
+                                                <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                                <div class="metric-value">{{ $dashboardData['screen_time_display'] ?? '0m' }}</div>
+                                                <div class="metric-label">Avg. Daily Screen Time</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="card metric-card">
+                                            <div class="card-body">
+                                                <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                                <div class="metric-value">{{ $dashboardData['blink_rate_display'] ?? '--/min' }}</div>
+                                                <div class="metric-label">Avg. Blink Rate</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="card metric-card">
+                                            <div class="card-body">
+                                                <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                                <div class="metric-value">{{ $dashboardData['distance_display'] ?? '--cm' }}</div>
+                                                <div class="metric-label">Avg. Viewing Distance</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Info Cards -->
+                                <div class="row g-3 mb-4">
+                                    <div class="col-lg-6">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="info-card-header">Screen-Time Target Compliance</div>
+                                                <div class="info-row">
+                                                    <span class="info-label">Days within target:</span>
+                                                    <span class="info-value">{{ $dashboardData['target_days_display'] ?? '0/7' }}</span>
+                                                </div>
+                                                <div class="info-row">
+                                                    <span class="info-label">Last 7 days</span>
+                                                    <span class="info-value">Live data</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="info-card-header">Strain Events (7 days)</div>
+                                                <div class="info-row">
+                                                    <span class="info-label">Low blink rate events:</span>
+                                                    <span class="info-value">{{ $dashboardData['low_blink_events'] ?? 0 }}</span>
+                                                </div>
+                                                <div class="info-row">
+                                                    <span class="info-label">Distance violations</span>
+                                                    <span class="info-value">{{ $dashboardData['distance_violations'] ?? 0 }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Charts -->
+                                <div class="card mb-4">
+                                    <div class="card-header bg-white border-0 py-3">
+                                        <h6 class="fw-bold mb-0">7-Day Compliance Trends - Blink Rate & Viewing Distance</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="complianceChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-4">
+                                    <div class="card-header bg-white border-0 py-3">
+                                        <h6 class="fw-bold mb-0">Daily Screen Time & Strain Events</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="screenTimeChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-4">
+                                    <div class="card-header bg-white border-0 py-3">
+                                        <h6 class="fw-bold mb-0">Eye Health Score Trend</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="healthScoreChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    class="btn btn-light w-100 text-start p-3 border-3"
+                                    style="border-style: dashed !important; border-color: #e2e8f0 !important;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#recommendationModal"
+                                >
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Send Recommendations to Patient</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Activity Tab -->
+                            <div class="tab-pane fade" id="activity">
+                                <h5 class="fw-bold mb-4">Recent Activity</h5>
+                                @if(!empty($dashboardData['activity_items']))
+                                    @foreach($dashboardData['activity_page_items'] as $activity)
+                                        <div class="activity-item mb-3">
+                                            <div class="d-flex gap-3">
+                                                <div class="activity-icon d-flex align-items-center justify-content-center text-success">
+                                                    <i class="bi bi-{{ $activity['icon'] }}"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <p class="mb-1 fw-bold" style="color: #1f2937;">{{ $activity['title'] }}</p>
+                                                    <small class="text-muted">{{ $activity['detail'] }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+
+                                    @if(($dashboardData['activity_total_pages'] ?? 1) > 1)
+                                        <nav aria-label="Activity pagination" class="mt-4 mb-4">
+                                            <ul class="pagination justify-content-center mb-0">
+                                                <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) <= 1 ? 'disabled' : '' }}">
+                                                    <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => max(($dashboardData['activity_page'] ?? 1) - 1, 1), 'tab' => 'activity']) }}">Previous</a>
+                                                </li>
+                                                @for($page = 1; $page <= ($dashboardData['activity_total_pages'] ?? 1); $page++)
+                                                    <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) === $page ? 'active' : '' }}">
+                                                        <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => $page, 'tab' => 'activity']) }}">{{ $page }}</a>
+                                                    </li>
+                                                @endfor
+                                                <li class="page-item {{ ($dashboardData['activity_page'] ?? 1) >= ($dashboardData['activity_total_pages'] ?? 1) ? 'disabled' : '' }}">
+                                                    <a class="page-link" href="{{ route('doctor.dashboard', ['patient' => $selectedPatient['id'] ?? null, 'activity_page' => min(($dashboardData['activity_page'] ?? 1) + 1, ($dashboardData['activity_total_pages'] ?? 1)), 'tab' => 'activity']) }}">Next</a>
+                                                </li>
+                                            </ul>
+                                        </nav>
+                                    @endif
+                                @else
+                                    <div class="activity-item mb-4">
+                                        <div class="d-flex gap-3">
+                                            <div class="activity-icon d-flex align-items-center justify-content-center text-success">
+                                                <i class="bi bi-inbox"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <p class="mb-1 fw-bold" style="color: #1f2937;">No recent activity</p>
+                                                <small class="text-muted">This patient has not generated any metric events yet.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <button
+                                    class="btn btn-light w-100 text-start p-3 border-3"
+                                    style="border-style: dashed !important; border-color: #e2e8f0 !important;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#recommendationModal"
+                                >
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Send Recommendations to Patient</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Account Settings Modal -->
+    <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="accountModalLabel">Account Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mx-auto mb-3" style="width: 80px; height: 80px; background-color: var(--primary-green); font-size: 2rem;">
+                            {{ auth()->user()->initials ?? 'DR' }}
+                        </div>
+                        <h5 class="fw-bold mb-1">{{ auth()->user()->display_name ?? 'Doctor' }}</h5>
+                        <p class="text-muted mb-2">{{ auth()->user()->email ?? '' }}</p>
+                        
+                        @if($doctorProfile->is_validated)
+                            <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-patch-check-fill me-1"></i> Verified Clinician</span>
+                        @else
+                            <span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-hourglass-split me-1"></i> Pending Verification</span>
+                            <p class="small text-muted mt-2 px-4">Your account is pending review by an admin. You will not appear in mobile searches until verified.</p>
+                        @endif
+                    </div>
+
+                    <div class="card border mb-3 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3">Professional Details</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Specialty</span>
+                                <span class="fw-semibold">{{ $doctorProfile->specialty ?? 'N/A' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Clinic</span>
+                                <span class="fw-semibold">{{ $doctorProfile->clinic ?? 'N/A' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Location</span>
+                                <span class="fw-semibold">{{ $doctorProfile->location ?? 'N/A' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">License No.</span>
+                                <span class="fw-semibold">{{ $doctorProfile->license_number ?? 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form action="{{ route('logout') }}" method="POST" class="d-grid mt-4">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Pending Requests Modal -->
     <div class="modal fade" id="requestsModal" tabindex="-1" aria-labelledby="requestsModalLabel" aria-hidden="true">
@@ -505,7 +596,7 @@
                                             </div>
                                         </div>
                                         <div class="d-flex gap-2">
-                                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="respondToRequest({{ $req->link_id }}, 'decline')">Decline</button>
+                                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="respondToRequest({{ $req->link_id }}, 'deny')">Decline</button>
                                             <button class="btn btn-sm btn-success rounded-pill px-3" onclick="respondToRequest({{ $req->link_id }}, 'accept')">Accept</button>
                                         </div>
                                     </div>
@@ -523,6 +614,7 @@
         </div>
     </div>
 
+    <!-- Recommendation Modal -->
     <div class="modal fade" id="recommendationModal" tabindex="-1" aria-labelledby="recommendationModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -557,21 +649,18 @@
         const submitRecommendationBtn = document.getElementById('submitRecommendationBtn');
         const recommendationModalEl = document.getElementById('recommendationModal');
 
-        // Handle Accept/Decline requests
+        // Handle Accept/Decline requests via the existing API
         async function respondToRequest(linkId, action) {
             try {
-                // Determine the correct status value based on your backend logic
-                // Usually, 1 = Active/Accepted, whereas declining might just delete the row.
-                const statusValue = action === 'accept' ? 1 : -1; 
-
-                const response = await fetch(`/doctor/requests/${linkId}`, {
+                // Laravel route requires PUT /api/web/doctor/requests/{link_id}
+                const response = await fetch(`/api/web/doctor/requests/${linkId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ status: statusValue, action: action })
+                    body: JSON.stringify({ action: action })
                 });
 
                 const data = await response.json();
@@ -579,11 +668,10 @@
                 if (response.ok) {
                     showDashboardAlert('success', `Request ${action}ed successfully.`);
                     
-                    // Remove the item from the modal visually
                     const reqElement = document.getElementById(`request-${linkId}`);
                     if (reqElement) reqElement.remove();
                     
-                    // Reload the page after a short delay so the new patient appears in the sidebar!
+                    // Reload if accepted so the new patient populates the sidebar
                     if (action === 'accept') {
                         setTimeout(() => window.location.reload(), 1500);
                     }
@@ -666,104 +754,106 @@
             }
         }
 
-        // Initialize Charts
-        const chartLabels = <?php echo json_encode($dashboardData['labels'] ?? []); ?>;
-        const blinkRates = <?php echo json_encode($dashboardData['blink_rates'] ?? []); ?>;
-        const distances = <?php echo json_encode($dashboardData['distances'] ?? []); ?>;
-        const screenTimes = <?php echo json_encode($dashboardData['screen_times'] ?? []); ?>;
-        const strainEvents = <?php echo json_encode($dashboardData['strain_events'] ?? []); ?>;
-        const healthScores = <?php echo json_encode($dashboardData['health_scores'] ?? []); ?>;
+        // Initialize Charts ONLY if we have a selected patient
+        @if(isset($selectedPatient) && !empty($selectedPatient))
+            const chartLabels = <?php echo json_encode($dashboardData['labels'] ?? []); ?>;
+            const blinkRates = <?php echo json_encode($dashboardData['blink_rates'] ?? []); ?>;
+            const distances = <?php echo json_encode($dashboardData['distances'] ?? []); ?>;
+            const screenTimes = <?php echo json_encode($dashboardData['screen_times'] ?? []); ?>;
+            const strainEvents = <?php echo json_encode($dashboardData['strain_events'] ?? []); ?>;
+            const healthScores = <?php echo json_encode($dashboardData['health_scores'] ?? []); ?>;
 
-        if (chartLabels.length) {
-            new Chart(document.getElementById('complianceChart').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: [
-                        {
-                            label: 'Blink Rate',
-                            data: blinkRates,
+            if (chartLabels.length) {
+                new Chart(document.getElementById('complianceChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [
+                            {
+                                label: 'Blink Rate',
+                                data: blinkRates,
+                                borderColor: '#527267',
+                                backgroundColor: 'rgba(82, 114, 103, 0.05)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#527267'
+                            },
+                            {
+                                label: 'Distance',
+                                data: distances,
+                                borderColor: '#a8e6e0',
+                                backgroundColor: 'rgba(168, 230, 224, 0.05)',
+                                fill: false,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#a8e6e0',
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            y: { position: 'left', max: 60 },
+                            y1: { position: 'right', max: 60, grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+
+                new Chart(document.getElementById('screenTimeChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [
+                            {
+                                label: 'Screen Time (min)',
+                                data: screenTimes,
+                                backgroundColor: '#527267',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Strain Events',
+                                data: strainEvents,
+                                backgroundColor: '#a8e6e0',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+
+                new Chart(document.getElementById('healthScoreChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: 'Health Score (%)',
+                            data: healthScores,
                             borderColor: '#527267',
                             backgroundColor: 'rgba(82, 114, 103, 0.05)',
                             fill: true,
                             tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#527267'
-                        },
-                        {
-                            label: 'Distance',
-                            data: distances,
-                            borderColor: '#a8e6e0',
-                            backgroundColor: 'rgba(168, 230, 224, 0.05)',
-                            fill: false,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#a8e6e0',
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } },
-                    scales: {
-                        y: { position: 'left', max: 60 },
-                        y1: { position: 'right', max: 60, grid: { drawOnChartArea: false } }
+                            pointRadius: 5,
+                            pointBackgroundColor: '#527267',
+                            pointBorderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: { y: { min: 0, max: 100, ticks: { stepSize: 25 } } }
                     }
-                }
-            });
-
-            new Chart(document.getElementById('screenTimeChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [
-                        {
-                            label: 'Screen Time (min)',
-                            data: screenTimes,
-                            backgroundColor: '#527267',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Strain Events',
-                            data: strainEvents,
-                            backgroundColor: '#a8e6e0',
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
-                }
-            });
-
-            new Chart(document.getElementById('healthScoreChart').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'Health Score (%)',
-                        data: healthScores,
-                        borderColor: '#527267',
-                        backgroundColor: 'rgba(82, 114, 103, 0.05)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#527267',
-                        pointBorderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { min: 0, max: 100, ticks: { stepSize: 25 } } }
-                }
-            });
-        }
+                });
+            }
+        @endif
 
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const val = e.target.value.toLowerCase();

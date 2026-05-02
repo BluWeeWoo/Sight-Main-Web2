@@ -31,6 +31,23 @@ class DoctorController extends Controller
                 ->wherePivot('is_active', true)
                 ->with(['user', 'guardians.user'])
                 ->get();
+
+            // Fetch pending requests directly here
+            $pendingRequests = ClinicianPatientLink::where('doctor_id', $doctorProfile->doctor_id)
+                ->where('is_active', false)
+                ->with(['child.user', 'child.guardians.user'])
+                ->get()
+                ->map(function ($link) {
+                    $childUser = $link->child->user;
+                    $guardianUser = $link->child->guardians->first()?->user;
+                    return (object)[
+                        'link_id' => $link->link_id,
+                        'child_first_name' => $childUser?->first_name ?? 'Unknown',
+                        'child_last_name' => $childUser?->last_name ?? '',
+                        'guardian_first_name' => $guardianUser?->first_name ?? 'Unknown',
+                        'guardian_last_name' => $guardianUser?->last_name ?? '',
+                    ];
+                });
         }
 
         $patients = $patientModels->map(function (ChildProfile $child) {
@@ -66,7 +83,7 @@ class DoctorController extends Controller
         $dashboardData['activity_total_pages'] = $activityTotalPages;
         $dashboardData['activity_total_items'] = $totalActivities;
 
-        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile', 'selectedPatient', 'selectedPatientId', 'dashboardData'));
+        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile', 'selectedPatient', 'selectedPatientId', 'dashboardData', 'pendingRequests'));
     }
 
     /**

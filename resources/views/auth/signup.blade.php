@@ -4,30 +4,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Fredoka', system-ui, -apple-system, sans-serif;
             background-color: #fafafa;
+            margin: 0;
+            overflow-x: hidden;
         }
         
-        .container-wrapper {
+        .hero-section {
+            position: relative;
             min-height: 100vh;
+            background:
+                radial-gradient(circle at 90% 50%, rgba(42, 131, 68, 0.2) 0%, transparent 35%),
+                radial-gradient(circle at 50% 50%, #E4FFD8 0%, transparent 60%),
+                radial-gradient(circle at 15% 20%, rgba(251, 207, 232, 0.6) 0%, transparent 20%);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 80px 1.5rem 60px;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            width: 100%;
+            height: 620px;
+            background: #F5FFF7;
+            border-radius: 0 0 50% 50%;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            top: 22%;
+            left: 65%;
+            width: 420px;
+            height: 420px;
+            border-radius: 100%;
+            background: radial-gradient(circle, rgba(222, 251, 225, 0.52) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .bg-lumi-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 30vw;
+            font-weight: 900;
+            color: #E4FFD8;
+            z-index: -1;
+            letter-spacing: 25px;
+            user-select: none;
+            opacity: 0.82;
+            transition: all 0.6s ease;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
+            text-shadow:
+                5px 15px 30px rgba(0, 0, 0, 0.05),
+                -1px -1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .bg-lumi-text.hero-dark {
+            color: #C4DDB9;
+            opacity: 1;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.5);
+            text-shadow:
+                5px 15px 30px rgba(0, 0, 0, 0.05),
+                -1px -1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .container-wrapper {
+            min-height: calc(100vh - 120px);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1rem;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            z-index: 1;
         }
-        
+
         .card-container {
             width: 100%;
-            max-width: 500px;
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            max-width: 540px;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 2.5rem;
+            box-shadow: 0 32px 120px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+            min-height: 640px;
+            display: flex;
+            flex-direction: column;
         }
         
         .card-header {
-            padding: 2.5rem;
+            padding: 3rem 2.5rem 1.5rem;
+            text-align: left;
         }
         
         .steps-container {
@@ -98,6 +181,7 @@
         
         .card-content {
             padding: 0 2.5rem 2.5rem 2.5rem;
+            flex: 1;
         }
         
         .form-group {
@@ -238,13 +322,14 @@
         }
         
         .form-errors {
-            background-color: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
+            background: rgba(220, 38, 38, 0.08);
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            color: #b91c1c;
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.05);
         }
         
         .form-errors ul {
@@ -258,8 +343,10 @@
     </style>
 </head>
 <body>
-    <div class="container-wrapper">
-        <div class="card-container">
+    <section class="hero-section">
+        <div class="bg-lumi-text">LUMI</div>
+        <div class="container-wrapper">
+            <div class="card-container">
             <div class="card-header">
                 <div class="steps-container">
                     <div class="step-item">
@@ -501,6 +588,7 @@
             </div>
         </div>
     </div>
+    </section>
 
     <script>
         function togglePassword(fieldId) {
@@ -576,6 +664,27 @@
                 line.classList.add('active');
                 line.classList.remove('inactive');
             }
+        }
+
+        const heroSection = document.querySelector('.hero-section');
+        const cardContainer = document.querySelector('.card-container');
+        const bgLumiText = document.querySelector('.bg-lumi-text');
+
+        if (heroSection && cardContainer && bgLumiText) {
+            const toggleLumiDark = (event) => {
+                bgLumiText.classList.toggle('hero-dark', !cardContainer.contains(event.target));
+            };
+
+            heroSection.addEventListener('mousemove', toggleLumiDark);
+            heroSection.addEventListener('mouseleave', () => {
+                bgLumiText.classList.remove('hero-dark');
+            });
+            cardContainer.addEventListener('mouseenter', () => {
+                bgLumiText.classList.remove('hero-dark');
+            });
+            cardContainer.addEventListener('mouseleave', () => {
+                bgLumiText.classList.add('hero-dark');
+            });
         }
     </script>
 </body>

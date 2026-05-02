@@ -116,8 +116,7 @@ class GuardianApiController extends Controller
         $validated = $request->validate([
             'guardian_email' => 'required|email|exists:user,email',
             'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'login_code' => 'required|string',
+            'last_name' => 'nullable|string|max:255',
             'password' => 'required|string',
         ]);
 
@@ -125,16 +124,15 @@ class GuardianApiController extends Controller
         
         $payload = [
             'first_name' => $validated['first_name'], 
-            'last_name' => $validated['last_name'], 
-            'birthdate' => '2015-01-01', // Default fallback
-            'mobile_login_code' => $validated['login_code'],
-            'mobile_password' => $validated['password']
+            'last_name' => $validated['last_name'] ?? '', 
+            'birthdate' => '2015-01-01', 
+            'mobile_password' => $validated['password'],
         ];
 
         $result = $this->ruleEngineService->addChild((int) $guardianUser->user_id, $payload);
         return response()->json($result['body'], $result['http_code']);
     }
-    
+
     /**
      * POST /api/mobile/guardian/verify-email
      * Simple email verification toggle for mobile

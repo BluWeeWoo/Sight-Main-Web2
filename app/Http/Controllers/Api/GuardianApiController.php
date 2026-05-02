@@ -180,4 +180,98 @@ class GuardianApiController extends Controller
             'message' => 'Password updated successfully.'
         ], 200);
     }
+
+    /**
+     * GET /api/mobile/guardian/children
+     * Fetches live children for a specific guardian email
+     */
+    public function getChildrenMobile(Request $request)
+    {
+        $request->validate(['email' => 'required|email|exists:user,email']);
+        
+        $guardianUser = User::where('email', $request->email)->first();
+        $guardian = \App\Models\GuardianProfile::where('user_id', $guardianUser->user_id)->first();
+        
+        if (!$guardian) {
+            return response()->json(['status' => 'error', 'message' => 'Guardian profile not found'], 404);
+        }
+
+        $children = \Illuminate\Support\Facades\DB::table('guardian_child_link')
+            ->join('child_profile', 'guardian_child_link.child_id', '=', 'child_profile.child_id')
+            ->join('user', 'child_profile.user_id', '=', 'user.user_id')
+            ->where('guardian_child_link.guardian_id', $guardian->guardian_id)
+            ->select(
+                'child_profile.child_id', 
+                'child_profile.login_code', 
+                'child_profile.birthdate', 
+                'user.first_name', 
+                'user.last_name', 
+                'user.password_hash' 
+            )
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $children
+        ], 200);
+    }
+
+    public function getAvailableDoctors()
+    {
+        $doctors = \Illuminate\Support\Facades\DB::table('doctor_profile')
+            ->join('user', 'doctor_profile.user_id', '=', 'user.user_id')
+            ->select(
+                'doctor_profile.doctor_id', 'user.first_name', 'user.last_name', 
+                'user.email', 'doctor_profile.specialty', 'doctor_profile.clinic', 'doctor_profile.location'
+            )
+            ->where('doctor_profile.is_validated', 1)
+            ->get();
+            
+        return response()->json(['status' => 'success', 'data' => $doctors], 200);
+    }
+
+    public function getChildClinicianLinks($child_id)
+    {
+        $links = \Illuminate\Support\Facades\DB::table('clinician_patient_link')
+            ->join('doctor_profile', 'clinician_patient_link.doctor_id', '=', 'doctor_profile.doctor_id')
+            ->join('user', 'doctor_profile.user_id', '=', 'user.user_id')
+            ->where('clinician_patient_link.child_id', $child_id)
+            ->select(
+                'clinician_patient_link.*', 'user.first_name', 'user.last_name', 
+                'user.email', 'doctor_profile.specialty', 'doctor_profile.clinic'
+            )
+            ->get();
+            
+        return response()->json(['status' => 'success', 'data' => $links], 200);
+    }
+
+    public function requestClinicianConnection(Request $request, $child_id)
+    {
+        $validated = $request->validate(['doctor_id' => 'required|integer']);
+        
+        $exists = \Illuminate\Support\Facades\DB::table('clinician_patient_link')
+            ->where('child_id', $child_id)
+            ->where('doctor_id', $validated['doctor_id'])
+            ->first();
+            
+        if ($exists) {
+            return response()->json(['status' => 'error', 'message' => 'Connection already exists.'], 400);
+        }
+
+        \Illuminate\Support\Facades\DB::table('clinician_patient_link')->insert([
+            'doctor_id' => $validated['doctor_id'],
+            'child_id' => $child_id,
+            'linkage_key' => md5(uniqid(rand(), true)),
+            'is_active' => 0, // 0 = Pending Approval
+            'linkage_date' => now()
+        ]);
+        
+        return response()->json(['status' => 'success', 'message' => 'Request sent successfully'], 200);
+    }
+
+    public function cancelClinicianConnection($link_id)
+    {
+        \Illuminate\Support\Facades\DB::table('clinician_patient_link')->where('link_id', $link_id)->delete();
+        return response()->json(['status' => 'success', 'message' => 'Request cancelled'], 200);
+    }
 }

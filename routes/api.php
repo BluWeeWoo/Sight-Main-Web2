@@ -52,11 +52,20 @@ Route::prefix('mobile')->group(function () {
     // Child Login via Code
     Route::post('/child/login', [MobileApiController::class, 'loginChild']);
     
-    // --- NEW: Mobile Authentication Routes ---
+    // --- Mobile Authentication Routes ---
     Route::post('/guardian/register', [GuardianApiController::class, 'registerMobile']);
     Route::post('/child/register', [GuardianApiController::class, 'addChildMobile']);
     Route::post('/guardian/verify-email', [GuardianApiController::class, 'verifyEmailMobile']);
     Route::post('/guardian/reset-password', [GuardianApiController::class, 'resetPasswordMobile']);
+
+    // Guardian Dashboard (Mobile)
+    Route::get('/guardian/children', [\App\Http\Controllers\Api\GuardianApiController::class, 'getChildrenMobile']);
+
+    // Doctor Search & Connection (Mobile)
+    Route::get('/doctors', [\App\Http\Controllers\Api\GuardianApiController::class, 'getAvailableDoctors']);
+    Route::get('/child/{child_id}/clinician-links', [\App\Http\Controllers\Api\GuardianApiController::class, 'getChildClinicianLinks']);
+    Route::post('/child/{child_id}/clinician-request', [\App\Http\Controllers\Api\GuardianApiController::class, 'requestClinicianConnection']);
+    Route::delete('/clinician-request/{link_id}', [\App\Http\Controllers\Api\GuardianApiController::class, 'cancelClinicianConnection']);
     
     // Sync endpoints (Authenticated)
     Route::middleware('auth:sanctum')->group(function () {

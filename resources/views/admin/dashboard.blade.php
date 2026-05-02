@@ -100,7 +100,15 @@
 
         .content-section.active {
             display: block;
+            height: calc(100vh - 160px); 
+            overflow-y: auto;
+            padding-bottom: 2rem;
+            padding-right: 10px;
         }
+        
+        /* Optional: Sleek scrollbar for the tab content */
+        .content-section::-webkit-scrollbar { width: 6px; }
+        .content-section::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
         .stats-grid {
             display: grid;

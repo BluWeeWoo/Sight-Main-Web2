@@ -188,7 +188,12 @@
                             {{ auth()->user()->initials ?? 'DR' }}
                         </div>
                         <div class="d-none d-md-block">
-                            <p class="small fw-semibold mb-0">{{ auth()->user()->display_name ?? 'Doctor' }}</p>
+                            <p class="small fw-semibold mb-0 d-flex align-items-center">
+                                {{ auth()->user()->display_name ?? 'Doctor' }}
+                                @if($doctorProfile->is_validated)
+                                    <i class="bi bi-patch-check-fill text-primary ms-1" title="Verified Clinician" style="font-size: 0.9rem;"></i>
+                                @endif
+                            </p>
                             <p class="text-muted mb-0" style="font-size: 0.7rem;">{{ $doctorProfile->specialty ?? 'Ophthalmologist' }}</p>
                         </div>
                     </div>

@@ -45,6 +45,7 @@ Route::prefix('auth')->group(function () {
 Route::prefix('doctor')->middleware(['auth', 'role:doctor'])->group(function () {
     Route::get('/dashboard', [DoctorController::class, 'dashboard'])->name('doctor.dashboard');
     Route::get('/patient/{patientId}', [DoctorController::class, 'getPatient']);
+    Route::put('/doctor/requests/{link_id}', [\App\Http\Controllers\DoctorController::class, 'respondToRequest']);
     Route::post('/patient/{patientId}/health-plan', [DoctorController::class, 'sendHealthPlan']);
     Route::get('/patient/{patientId}/compliance', [DoctorController::class, 'getComplianceData']);
     Route::get('/patient/{patientId}/activity', [DoctorController::class, 'getActivityLog']);

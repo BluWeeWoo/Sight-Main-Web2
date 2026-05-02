@@ -109,6 +109,34 @@ class DoctorController extends Controller
     }
 
     /**
+     * Accepts or rejects a guardian link request (Web Session)
+     */
+    public function respondToRequest(Request $request, $link_id)
+    {
+        $request->validate([
+            'action' => 'required|in:accept,deny',
+        ]);
+
+        $link = ClinicianPatientLink::find($link_id);
+        if (!$link) {
+            return response()->json(['success' => false, 'message' => 'Link not found'], 404);
+        }
+
+        $doctor = DoctorProfile::where('user_id', Auth::id())->first();
+        if (!$doctor || $link->doctor_id != $doctor->doctor_id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        if ($request->action === 'accept') {
+            $link->update(['is_active' => 1]);
+            return response()->json(['success' => true, 'message' => 'Link accepted']);
+        } else {
+            $link->delete();
+            return response()->json(['success' => true, 'message' => 'Link denied']);
+        }
+    }
+
+    /**
      * Send personalized health plan to patient
      */
     public function sendHealthPlan(Request $request, $patientId)

@@ -682,7 +682,11 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showDashboardAlert('success', `Request ${action}ed successfully.`);
+                    if (action === 'accept') {
+                        showDashboardAlert('success', 'Request accepted. Patient has been added to your dashboard.');
+                    } else {
+                        showDashboardAlert('success', 'Request declined successfully.');
+                    }
                     
                     const reqElement = document.getElementById(`request-${linkId}`);
                     if (reqElement) reqElement.remove();

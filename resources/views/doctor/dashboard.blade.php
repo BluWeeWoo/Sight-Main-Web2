@@ -156,6 +156,14 @@
                     <p class="text-muted small mb-0">Patient monitoring system</p>
                 </div>
                 <div class="d-flex align-items-center gap-4">
+                    <button class="btn btn-light position-relative rounded-circle p-2" data-bs-toggle="modal" data-bs-target="#requestsModal" style="border: 1px solid var(--border-color);">
+                        <i class="bi bi-bell fs-5 text-secondary"></i>
+                        @if(isset($pendingRequests) && count($pendingRequests) > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ count($pendingRequests) }}
+                            </span>
+                        @endif
+                    </button>
                     <div class="d-flex align-items-center gap-3">
                         <div class="rounded-circle header-avatar d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
                             {{ auth()->user()->initials ?? 'DR' }}
@@ -265,20 +273,20 @@
                             <div class="card health-grade-card mb-4">
                                 <div class="card-body d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h6 class="fw-bold mb-1">Overall Health Grade: {{ $dashboardData['health_grade'] }}</h6>
+                                        <h6 class="fw-bold mb-1">Overall Health Grade: {{ $dashboardData['health_grade'] ?? 'N/A' }}</h6>
                                         <p class="text-muted small mb-0">Live summary for the selected patient based on the last 7 days of records.</p>
                                     </div>
                                     <div class="d-flex align-items-center">
                                         <!-- Health Score -->
                                         <div class="text-center pe-4 border-end">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
-                                            <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">{{ $dashboardData['health_score_display'] }}</div>
+                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                            <div class="h2 fw-bold mb-0 mt-2" style="color: var(--primary-green);">{{ $dashboardData['health_score_display'] ?? '--' }}</div>
                                             <div class="small text-muted">Health Score</div>
                                         </div>
                                         <!-- Coins Balance -->
                                         <div class="text-center ps-4">
                                             <span class="health-badge" style="background-color: #fef08a; color: #b45309;"><i class="bi bi-coin"></i> Economy</span>
-                                            <div class="h2 fw-bold mb-0 mt-2" style="color: #d97706;">{{ number_format($dashboardData['latest_coins']) }}</div>
+                                            <div class="h2 fw-bold mb-0 mt-2" style="color: #d97706;">{{ number_format($dashboardData['latest_coins'] ?? 0) }}</div>
                                             <div class="small text-muted">Total Coins</div>
                                         </div>
                                     </div>
@@ -290,8 +298,8 @@
                                 <div class="col-lg-3">
                                     <div class="card metric-card">
                                         <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
-                                            <div class="metric-value">{{ $dashboardData['health_score_display'] }}</div>
+                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                            <div class="metric-value">{{ $dashboardData['health_score_display'] ?? '--' }}</div>
                                             <div class="metric-label">Eye Health Score</div>
                                         </div>
                                     </div>
@@ -299,8 +307,8 @@
                                 <div class="col-lg-3">
                                     <div class="card metric-card">
                                         <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
-                                            <div class="metric-value">{{ $dashboardData['screen_time_display'] }}</div>
+                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                            <div class="metric-value">{{ $dashboardData['screen_time_display'] ?? '0m' }}</div>
                                             <div class="metric-label">Avg. Daily Screen Time</div>
                                         </div>
                                     </div>
@@ -308,8 +316,8 @@
                                 <div class="col-lg-3">
                                     <div class="card metric-card">
                                         <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
-                                            <div class="metric-value">{{ $dashboardData['blink_rate_display'] }}</div>
+                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                            <div class="metric-value">{{ $dashboardData['blink_rate_display'] ?? '--/min' }}</div>
                                             <div class="metric-label">Avg. Blink Rate</div>
                                         </div>
                                     </div>
@@ -317,8 +325,8 @@
                                 <div class="col-lg-3">
                                     <div class="card metric-card">
                                         <div class="card-body">
-                                            <span class="health-badge">{{ $dashboardData['health_grade'] }}</span>
-                                            <div class="metric-value">{{ $dashboardData['distance_display'] }}</div>
+                                            <span class="health-badge">{{ $dashboardData['health_grade'] ?? 'N/A' }}</span>
+                                            <div class="metric-value">{{ $dashboardData['distance_display'] ?? '--cm' }}</div>
                                             <div class="metric-label">Avg. Viewing Distance</div>
                                         </div>
                                     </div>
@@ -333,7 +341,7 @@
                                             <div class="info-card-header">Screen-Time Target Compliance</div>
                                             <div class="info-row">
                                                 <span class="info-label">Days within target:</span>
-                                                <span class="info-value">{{ $dashboardData['target_days_display'] }}</span>
+                                                <span class="info-value">{{ $dashboardData['target_days_display'] ?? '0/7' }}</span>
                                             </div>
                                             <div class="info-row">
                                                 <span class="info-label">Last 7 days</span>
@@ -348,11 +356,11 @@
                                             <div class="info-card-header">Strain Events (7 days)</div>
                                             <div class="info-row">
                                                 <span class="info-label">Low blink rate events:</span>
-                                                <span class="info-value">{{ $dashboardData['low_blink_events'] }}</span>
+                                                <span class="info-value">{{ $dashboardData['low_blink_events'] ?? 0 }}</span>
                                             </div>
                                             <div class="info-row">
                                                 <span class="info-label">Distance violations</span>
-                                                <span class="info-value">{{ $dashboardData['distance_violations'] }}</span>
+                                                <span class="info-value">{{ $dashboardData['distance_violations'] ?? 0 }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -473,6 +481,48 @@
         </div>
     </main>
 
+    <!-- Pending Requests Modal -->
+    <div class="modal fade" id="requestsModal" tabindex="-1" aria-labelledby="requestsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="requestsModalLabel">Pending Requests</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if(isset($pendingRequests) && count($pendingRequests) > 0)
+                        <div class="list-group list-group-flush">
+                            @foreach($pendingRequests as $req)
+                                <div class="list-group-item px-0 py-3 border-bottom" id="request-{{ $req->link_id }}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-primary fw-bold" style="width: 48px; height: 48px;">
+                                                {{ substr($req->child_first_name, 0, 1) }}{{ substr($req->child_last_name, 0, 1) }}
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0 fw-bold">{{ $req->child_first_name }} {{ $req->child_last_name }}</h6>
+                                                <small class="text-muted">Guardian: {{ $req->guardian_first_name }} {{ $req->guardian_last_name }}</small>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="respondToRequest({{ $req->link_id }}, 'decline')">Decline</button>
+                                            <button class="btn btn-sm btn-success rounded-pill px-3" onclick="respondToRequest({{ $req->link_id }}, 'accept')">Accept</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-1 mb-2 d-block opacity-50"></i>
+                            <p class="mb-0">No pending connection requests.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="recommendationModal" tabindex="-1" aria-labelledby="recommendationModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -506,6 +556,44 @@
         const recommendationText = document.getElementById('recommendationText');
         const submitRecommendationBtn = document.getElementById('submitRecommendationBtn');
         const recommendationModalEl = document.getElementById('recommendationModal');
+
+        // Handle Accept/Decline requests
+        async function respondToRequest(linkId, action) {
+            try {
+                // Determine the correct status value based on your backend logic
+                // Usually, 1 = Active/Accepted, whereas declining might just delete the row.
+                const statusValue = action === 'accept' ? 1 : -1; 
+
+                const response = await fetch(`/doctor/requests/${linkId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ status: statusValue, action: action })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showDashboardAlert('success', `Request ${action}ed successfully.`);
+                    
+                    // Remove the item from the modal visually
+                    const reqElement = document.getElementById(`request-${linkId}`);
+                    if (reqElement) reqElement.remove();
+                    
+                    // Reload the page after a short delay so the new patient appears in the sidebar!
+                    if (action === 'accept') {
+                        setTimeout(() => window.location.reload(), 1500);
+                    }
+                } else {
+                    showDashboardAlert('error', data.message || `Failed to ${action} request.`);
+                }
+            } catch (error) {
+                showDashboardAlert('error', `An error occurred: ${error.message}`);
+            }
+        }
 
         function showDashboardAlert(type, message) {
             const cls = type === 'success' ? 'alert-success' : 'alert-danger';
@@ -579,12 +667,12 @@
         }
 
         // Initialize Charts
-        const chartLabels = <?php echo json_encode($dashboardData['labels']); ?>;
-        const blinkRates = <?php echo json_encode($dashboardData['blink_rates']); ?>;
-        const distances = <?php echo json_encode($dashboardData['distances']); ?>;
-        const screenTimes = <?php echo json_encode($dashboardData['screen_times']); ?>;
-        const strainEvents = <?php echo json_encode($dashboardData['strain_events']); ?>;
-        const healthScores = <?php echo json_encode($dashboardData['health_scores']); ?>;
+        const chartLabels = <?php echo json_encode($dashboardData['labels'] ?? []); ?>;
+        const blinkRates = <?php echo json_encode($dashboardData['blink_rates'] ?? []); ?>;
+        const distances = <?php echo json_encode($dashboardData['distances'] ?? []); ?>;
+        const screenTimes = <?php echo json_encode($dashboardData['screen_times'] ?? []); ?>;
+        const strainEvents = <?php echo json_encode($dashboardData['strain_events'] ?? []); ?>;
+        const healthScores = <?php echo json_encode($dashboardData['health_scores'] ?? []); ?>;
 
         if (chartLabels.length) {
             new Chart(document.getElementById('complianceChart').getContext('2d'), {

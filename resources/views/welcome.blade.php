@@ -6,7 +6,7 @@
     <title>LUMI - Eye Health</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Coiny&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --lumi-green: #eef9f1;
@@ -477,6 +477,189 @@
             </div>
         </div>
     </div>
+
+    <!-- Enhanced Mission, Philosophy, Vision & Goals Section -->
+    <section class="py-5" style="background: linear-gradient(180deg, #ffffff 0%, #f8fdfb 50%, #ECFFE4 100%); position: relative; overflow: hidden; font-family: 'Coiny', sans-serif;">
+        <!-- Animated Background Elements -->
+        <div style="position: absolute; top: -150px; right: -100px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(197, 222, 181, 0.15) 0%, transparent 70%); border-radius: 50%; z-index: 0; animation: float 8s ease-in-out infinite;"></div>
+        <div style="position: absolute; bottom: -100px; left: -150px; width: 400px; height: 400px; background: radial-gradient(circle, rgba(197, 222, 181, 0.15) 0%, transparent 70%); border-radius: 50%; z-index: 0; animation: float 10s ease-in-out infinite reverse;"></div>
+        <div style="position: absolute; top: 40%; left: 5%; width: 200px; height: 200px; background: radial-gradient(circle, rgba(223, 242, 215, 0.1) 0%, transparent 70%); border-radius: 50%; z-index: 0;"></div>
+
+        <style>
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(30px); }
+            }
+            @keyframes pulse-glow {
+                0%, 100% { box-shadow: 0 10px 40px rgba(197, 222, 181, 0.2); }
+                50% { box-shadow: 0 15px 50px rgba(197, 222, 181, 0.4); }
+            }
+            @keyframes slide-in-card {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .enhanced-card {
+                transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .enhanced-card:hover {
+                transform: translateY(-12px);
+                box-shadow: 0 20px 60px rgba(197, 222, 181, 0.25) !important;
+            }
+        </style>
+
+        <div class="container-fluid px-4 px-md-5" style="position: relative; z-index: 1;">
+            <!-- Section Header -->
+            <div class="row mb-5">
+                <div class="col-12 text-center scroll-animate" style="margin-top: 2rem;">
+                    <span style="display: inline-block; background: #C5DEB5; color: white; padding: 0.5rem 1.5rem; border-radius: 50px; font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem;">Illuminators</span>
+                    <h2 class="fw-bold mb-2" style="font-size: 3rem; color: #C5DEB5;">Mission & Values</h2>
+                    <p style="color: #666; font-size: 1.1rem; max-width: 600px; margin: 0 auto; line-height: 1.6;">Dedicated to transforming digital wellness and protecting eye health for the next generation</p>
+                </div>
+            </div>
+
+            <!-- Mission Section - Full Width Hero Banner -->
+            <div class="row mb-5">
+                <div class="col-12 scroll-animate">
+                    <div class="rounded-4 p-5 position-relative overflow-hidden enhanced-card" 
+                         style="background: #C5DEB5; color: white; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 15px 50px rgba(197, 222, 181, 0.3); border: 1px solid rgba(255, 255, 255, 0.2);">
+                        
+                        <!-- Decorative animated circles -->
+                        <div style="position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%); border-radius: 50%; opacity: 0.5; animation: float 6s ease-in-out infinite;"></div>
+                        <div style="position: absolute; bottom: -30px; left: -80px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%); border-radius: 50%; opacity: 0.5;"></div>
+                        
+                        <div style="position: relative; z-index: 2; text-align: center;">
+                            <div style="font-size: 4rem; margin-bottom: 1.5rem; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));">🎯</div>
+                            <h2 class="fw-bold mb-4" style="font-size: 2.8rem; line-height: 1.1; text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">Our Mission</h2>
+                            <p class="lead mb-0" style="font-size: 1.15rem; max-width: 700px; margin: 0 auto; font-weight: 300; line-height: 1.7; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
+                                To provide digital solutions that help users maintain safe screen usage and protect their eye health. We empower families through technology that promotes responsible and healthier digital habits.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Philosophy, Vision, Goals Grid -->
+            <div class="row g-4 mb-5">
+                <!-- Philosophy Card -->
+                <div class="col-md-6 col-lg-4 scroll-animate-left">
+                    <div class="rounded-4 p-5 h-100 position-relative overflow-hidden enhanced-card" 
+                         style="background: white; box-shadow: 0 10px 35px rgba(197, 222, 181, 0.12); border: 1.5px solid #DFF2D7;">
+                        
+                        <!-- Top accent -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: #C5DEB5;"></div>
+                        
+                        <!-- Decorative blur -->
+                        <div style="position: absolute; top: 0; right: 0; width: 150px; height: 150px; background: radial-gradient(circle, rgba(197, 222, 181, 0.08) 0%, transparent 70%); border-radius: 50%;"></div>
+                        
+                        <div style="position: relative; z-index: 2;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">💡</div>
+                            <h3 class="fw-bold mb-3" style="color: #C5DEB5; font-size: 1.6rem;">Philosophy</h3>
+                            <p style="color: var(--text-main); line-height: 1.7; margin-bottom: 1.5rem; font-size: 0.95rem;">
+                                We believe that technology should protect and improve people's well-being. Guided by health, innovation, responsibility, and accessibility.
+                            </p>
+                            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <div style="width: 24px; height: 24px; background: #C5DEB5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.8rem;">✓</div>
+                                    <span style="color: #555; font-size: 0.95rem;">Promote safer digital habits</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <div style="width: 24px; height: 24px; background: #C5DEB5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.8rem;">✓</div>
+                                    <span style="color: #555; font-size: 0.95rem;">Better eye health for users</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vision Card -->
+                <div class="col-md-6 col-lg-4 scroll-animate">
+                    <div class="rounded-4 p-5 h-100 position-relative overflow-hidden enhanced-card" 
+                         style="background: #ECFFE4; box-shadow: 0 10px 35px rgba(197, 222, 181, 0.15); border: 1.5px solid #DFF2D7;">
+                        
+                        <!-- Top accent -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: #C5DEB5;"></div>
+                        
+                        <!-- Decorative blur -->
+                        <div style="position: absolute; bottom: 0; right: 0; width: 150px; height: 150px; background: radial-gradient(circle, rgba(197, 222, 181, 0.15) 0%, transparent 70%); border-radius: 50%;"></div>
+                        
+                        <div style="position: relative; z-index: 2;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+                            <h3 class="fw-bold mb-3" style="color: #C5DEB5; font-size: 1.6rem;">Vision</h3>
+                            <p style="color: var(--text-main); line-height: 1.7; margin-bottom: 1.5rem; font-size: 0.95rem;">
+                                To become a trusted digital health solution that helps people develop safer screen habits and maintain better eye health through innovative technology.
+                            </p>
+                            <div style="padding: 1.2rem; background: #DFF2D7; border-radius: 14px; border-left: 4px solid #C5DEB5; font-size: 0.9rem; color: #666; font-weight: 500; line-height: 1.6;">
+                                "Making digital wellness accessible to all"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Goals & Milestones Card -->
+                <div class="col-md-12 col-lg-4 scroll-animate-right">
+                    <div class="rounded-4 p-5 h-100 position-relative overflow-hidden enhanced-card" 
+                         style="background: #DFF2D7; box-shadow: 0 10px 35px rgba(197, 222, 181, 0.12); border: 1.5px solid #C5DEB5;">
+                        
+                        <!-- Top accent -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: #C5DEB5;"></div>
+                        
+                        <!-- Decorative blur -->
+                        <div style="position: absolute; top: 0; left: 0; width: 120px; height: 120px; background: radial-gradient(circle, rgba(197, 222, 181, 0.1) 0%, transparent 70%); border-radius: 50%;"></div>
+                        
+                        <div style="position: relative; z-index: 2;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                            <h3 class="fw-bold mb-4" style="color: #C5DEB5; font-size: 1.6rem;">Goals & Milestones</h3>
+                            <div style="display: flex; flex-direction: column; gap: 0;">
+                                <div style="padding: 1.2rem; border-bottom: 1px solid #ECFFE4; position: relative;">
+                                    <div style="position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: #C5DEB5;"></div>
+                                    <div style="font-weight: 700; color: #333; margin-bottom: 0.4rem; font-size: 0.95rem; margin-left: 1rem;">📱 Multi-Platform Launch</div>
+                                    <div style="color: #555; font-size: 0.85rem; margin-left: 1rem;">Mobile and web application</div>
+                                </div>
+                                <div style="padding: 1.2rem; border-bottom: 1px solid #ECFFE4; position: relative;">
+                                    <div style="position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: #C5DEB5;"></div>
+                                    <div style="font-weight: 700; color: #333; margin-bottom: 0.4rem; font-size: 0.95rem; margin-left: 1rem;">👥 User Growth</div>
+                                    <div style="color: #555; font-size: 0.85rem; margin-left: 1rem;">1,000+ users & 200+ clinicians</div>
+                                </div>
+                                <div style="padding: 1.2rem; position: relative;">
+                                    <div style="position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: #C5DEB5;"></div>
+                                    <div style="font-weight: 700; color: #333; margin-bottom: 0.4rem; font-size: 0.95rem; margin-left: 1rem;">👁️ Eye Health Impact</div>
+                                    <div style="color: #555; font-size: 0.85rem; margin-left: 1rem;">Reduce dry eye & myopia progression</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action Section with Mascot -->
+            <div class="row mt-5 position-relative">
+                <div class="col-12 scroll-animate-scale">
+                    <div class="rounded-4 p-5 position-relative overflow-hidden" 
+                         style="background: linear-gradient(135deg, #ECFFE4 0%, #DFF2D7 50%, #C5DEB5 100%); box-shadow: 0 15px 50px rgba(197, 222, 181, 0.2); border: 1.5px solid rgba(197, 222, 181, 0.3); min-height: 280px; display: flex; align-items: center; justify-content: center;">
+                        
+                        <!-- Animated background elements -->
+                        <div style="position: absolute; top: -60px; right: 10%; width: 250px; height: 250px; background: radial-gradient(circle, rgba(197, 222, 181, 0.1) 0%, transparent 70%); border-radius: 50%; animation: float 7s ease-in-out infinite;"></div>
+                        <div style="position: absolute; bottom: -40px; left: 5%; width: 200px; height: 200px; background: radial-gradient(circle, rgba(197, 222, 181, 0.15) 0%, transparent 70%); border-radius: 50%;"></div>
+                        
+                        <div style="position: relative; z-index: 2; text-align: center; max-width: 600px;">
+                            <span style="display: inline-block; background: #C5DEB5; color: white; padding: 0.4rem 1.2rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem;">Ready to start?</span>
+                            <h3 class="fw-bold mb-3" style="color: var(--text-main); font-size: 2.2rem; line-height: 1.2;">Join Our Growing Community</h3>
+                            <p style="color: var(--text-main); font-size: 1.05rem; margin-bottom: 2.5rem; line-height: 1.7; opacity: 0.85;">
+                                Be part of a movement dedicated to healthier digital habits and better eye health for the next generation. Start protecting eyes today.
+                            </p>
+                            <a href="{{ Route::has('register') ? route('register') : '#' }}" 
+                               class="btn fw-bold py-3 px-6" 
+                               style="background: #C5DEB5; color: white; border: none; border-radius: 28px; font-size: 1.05rem; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 8px 25px rgba(197, 222, 181, 0.3); position: relative; overflow: hidden;"
+                               onmouseover="this.style.boxShadow='0 12px 35px rgba(197, 222, 181, 0.5)'; this.style.transform='translateY(-4px)';"
+                               onmouseout="this.style.boxShadow='0 8px 25px rgba(197, 222, 181, 0.3)'; this.style.transform='translateY(0)';">
+                                Get Started Today
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <footer class="text-center py-4 text-muted border-top">
         <p>&copy; 2026 LUMI Eye Health. All rights reserved.</p>

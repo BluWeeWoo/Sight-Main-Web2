@@ -6,13 +6,15 @@
     <title>Doctor Login - Eye Health Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-green: #527267;
             --bg-light: #f8fafc;
         }
         body {
-            background: 
+            /* Copied from welcome.blade.php .hero-section background */
+            background:
                 radial-gradient(circle at 90% 50%, rgba(42, 131, 68, 0.2) 0%, transparent 35%),
                 radial-gradient(circle at 50% 50%, #E4FFD8 0%, transparent 60%),
                 radial-gradient(circle at 15% 20%, rgba(251, 207, 232, 0.6) 0%, transparent 20%);
@@ -21,35 +23,63 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: hidden;
+            position: relative; /* Needed for pseudo-elements */
+            overflow: hidden; /* Hide overflow from pseudo-elements */
         }
-        .bg-lumi-text {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 30vw;
-            font-weight: 900;
-            color: #E4FFD8;
-            z-index: -1;
-            letter-spacing: 25px;
-            user-select: none;
-            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
-            text-shadow: 5px 15px 30px rgba(0, 0, 0, 0.05);
+        body::before { /* Copied from welcome.blade.php .hero-section::before */
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            width: 100%;
+            height: 800px;
+            background: #F5FFF7;
+            border-radius: 0 0 50% 50%;
+            z-index: -2;
+            pointer-events: none;
+        }
+        body::after { /* Copied from welcome.blade.php .hero-section::after */
+            content: '';
+            position: absolute;
+            top: 30%;
+            left: 65%;
+            width: 400px;
+            height: 400px;
+            border-radius: 100%;
+            background: radial-gradient(circle, rgba(222, 251, 225, 0.52) 00%, transparent 70%);
+            z-index: 5;
+            pointer-events: none;
         }
         .login-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 540px;
             padding: 1rem;
         }
         .login-card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            min-height: 600px;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 2.5rem;
+            box-shadow: 0 32px 120px rgba(0, 0, 0, 0.12);
+            min-height: 640px;
+            position: relative; /* Ensure z-index works */
+            z-index: 10; /* Bring card to front */
             display: flex;
             flex-direction: column;
+        }
+        .alert-danger {
+            background: rgba(220, 38, 38, 0.08);
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            color: #b91c1c;
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.05);
         }
         .login-card .card-header {
             border: none;

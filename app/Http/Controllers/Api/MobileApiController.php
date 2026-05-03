@@ -21,11 +21,13 @@ class MobileApiController extends Controller
     {
         $request->validate([
             'login_code' => 'required|string|size:6',
+            'password' => 'required|string',
             'device_id' => 'nullable|string',
         ]);
 
         $result = $this->metricsService->loginChild(
             $request->string('login_code')->toString(),
+            $request->input('password'),
             $request->input('device_id')
         );
 

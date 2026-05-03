@@ -27,19 +27,18 @@
         /* Large LUMI Background Text */
         .bg-lumi-text {
             position: absolute;
-            top: 40%; 
+            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%); 
+            transform: translate(-50%, -50%);
             font-size: 30vw;
             font-weight: 900;
-            color: #E4FFD8; 
+            color: #E4FFD8;
             z-index: -1;
             letter-spacing: 25px;
             user-select: none;
-            transition: all 0.6s ease; 
-            /* Glass text effect on the characters */
+            transition: all 0.6s ease;
             -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
-            text-shadow: 
+            text-shadow:
                 5px 15px 30px rgba(0, 0, 0, 0.05),
                 -1px -1px 0 rgba(255, 255, 255, 0.4);
         }
@@ -69,7 +68,6 @@
                 radial-gradient(circle at 50% 50%, #E4FFD8 0%, transparent 60%),
                 radial-gradient(circle at 15% 20%, rgba(251, 207, 232, 0.6) 0%, transparent 20%);
 
-               
             display: flex;
             align-items: center;
             justify-content: center;

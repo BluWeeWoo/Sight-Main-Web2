@@ -369,7 +369,6 @@ class AuthController extends Controller
 
         // Create the user
         $user = User::create([
-            'user_id' => ((int) DB::table('user')->max('user_id')) + 1,
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
@@ -390,7 +389,6 @@ class AuthController extends Controller
             $doctorProfile->save();
         } else {
             DoctorProfile::create([
-                'doctor_id' => ((int) DB::table('doctor_profile')->max('doctor_id')) + 1,
                 'user_id' => $user->user_id,
                 'phone' => $validated['phone'],
                 'clinic' => $validated['clinic'],

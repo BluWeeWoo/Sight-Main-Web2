@@ -115,21 +115,10 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
         }
-        .bg-lumi-text {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 30vw;
-            font-weight: 900;
-            color: #E4FFD8;
-            z-index: -1;
-            letter-spacing: 25px;
-            user-select: none;
-            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
-            text-shadow: 5px 15px 30px rgba(0, 0, 0, 0.05);
+
+        .hero-right {
+            overflow: visible;
         }
 
         .phone-wrapper {
@@ -228,21 +217,28 @@ width: 130px;
             transform-style: preserve-3d;
         }
 
-                .login-card {
+        .login-card {
             background: #ffffff;
             border: 1px solid rgba(82, 114, 103, 0.08);
             border-radius: 2.5rem;
-            box-shadow: 0 24px 60px rgba(15, 54, 41, 0.08);
+            box-shadow:
+                0 14px 40px rgba(15, 54, 41, 0.08),
+                0 2px 6px rgba(15, 54, 41, 0.04);
             overflow: hidden;
-            height: 620px;
-            hei-height: 620px;
-            maxght: 620px;
             min-height: 620px;
             max-height: 620px;
             display: flex;
             flex-direction: column;
             position: relative;
-            animation: fadeInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: cardFadeIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+            transition: transform 0.28s ease, box-shadow 0.28s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-6px);
+            box-shadow:
+                0 22px 56px rgba(15, 54, 41, 0.11),
+                0 8px 18px rgba(15, 54, 41, 0.06);
         }
 
         .login-card .card-body {
@@ -265,7 +261,7 @@ width: 130px;
             border-radius: 1.5rem;
             padding: 1.25rem;
             font-size: 0.95rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -274,7 +270,7 @@ width: 130px;
 
         .login-card .card-header {
             border: none;
-            padding: 3rem 2rem 1.5rem;
+            padding: 3rem 2.5rem 1.25rem;
             background: transparent;
             text-align: left;
         }
@@ -308,6 +304,69 @@ width: 130px;
             margin: 0;
         }
 
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper .form-control {
+            padding-right: 3.25rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #75807d;
+            padding: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-green);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+
+        .form-check-input {
+            margin-top: 0;
+            border-color: rgba(82, 114, 103, 0.28);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary-green);
+            border-color: var(--primary-green);
+        }
+
+        .form-check-label {
+            font-size: 0.875rem;
+            font-weight: normal;
+            color: #1f2937;
+            cursor: pointer;
+            margin: 0;
+        }
+
         .form-control {
             border: 2px solid rgba(16, 185, 129, 0.18);
             border-radius: 1.5rem;
@@ -315,12 +374,14 @@ width: 130px;
             padding: 0 1.25rem;
             font-size: 0.95rem;
             background: rgba(255,255,255,0.9);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         .form-control:focus {
             border-color: var(--primary-green);
             box-shadow: 0 0 0 0.2rem rgba(82, 114, 103, 0.12);
             outline: none;
+            transform: translateY(-1px);
         }
 
         .form-label {
@@ -332,6 +393,9 @@ width: 130px;
         .forgot-password,
         .signup-link {
             color: var(--primary-green);
+            font-size: 0.875rem;
+            text-decoration: none;
+            font-weight: 500;
         }
 
         .checkbox-wrapper {
@@ -350,11 +414,15 @@ width: 130px;
             border-radius: 999px;
             padding: 0.95rem 1.5rem;
             border: none;
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow:
+                0 8px 18px rgba(82, 114, 103, 0.16),
+                0 2px 6px rgba(82, 114, 103, 0.08);
         }
 
         .btn-signin:hover {
             background-color: #405b4d;
+            transform: translateY(-1px);
         }
 
         .button-container {
@@ -363,11 +431,15 @@ width: 130px;
             margin-bottom: 1.5rem;
         }
 
-        .signup-text {
-            text-align: center;
-            color: #5f6a70;
-            font-size: 0.95rem;
-            margin-top: 1.25rem;
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px) scale(0.985);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .signup-link:hover,
@@ -405,11 +477,31 @@ width: 130px;
         @media (max-width: 560px) {
             .login-card {
                 min-height: auto;
+                max-height: none;
                 border-radius: 2rem;
             }
 
             .login-card .card-header {
                 padding-top: 2rem;
+            }
+
+            .login-card .card-body {
+                padding: 1.5rem;
+            }
+
+            .login-card .card-header {
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
+            }
+
+            .checkbox-wrapper {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.85rem;
+            }
+
+            .button-container {
+                margin-bottom: 0.75rem;
             }
         }
     </style>
@@ -539,10 +631,6 @@ width: 130px;
                                 </div>
                             </form>
 
-                            <div class="signup-text">
-                                Don't have an account?
-                                <a href="{{ route('signup') }}" class="signup-link">Sign up</a>
-                            </div>
                         </div>
                     </div>
                 </div>

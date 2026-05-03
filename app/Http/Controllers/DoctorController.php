@@ -31,6 +31,23 @@ class DoctorController extends Controller
                 ->wherePivot('is_active', true)
                 ->with(['user', 'guardians.user'])
                 ->get();
+
+            // Fetch pending requests directly here
+            $pendingRequests = ClinicianPatientLink::where('doctor_id', $doctorProfile->doctor_id)
+                ->where('is_active', false)
+                ->with(['child.user', 'child.guardians.user'])
+                ->get()
+                ->map(function ($link) {
+                    $childUser = $link->child->user;
+                    $guardianUser = $link->child->guardians->first()?->user;
+                    return (object)[
+                        'link_id' => $link->link_id,
+                        'child_first_name' => $childUser?->first_name ?? 'Unknown',
+                        'child_last_name' => $childUser?->last_name ?? '',
+                        'guardian_first_name' => $guardianUser?->first_name ?? 'Unknown',
+                        'guardian_last_name' => $guardianUser?->last_name ?? '',
+                    ];
+                });
         }
 
         $patients = $patientModels->map(function (ChildProfile $child) {
@@ -66,7 +83,7 @@ class DoctorController extends Controller
         $dashboardData['activity_total_pages'] = $activityTotalPages;
         $dashboardData['activity_total_items'] = $totalActivities;
 
-        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile', 'selectedPatient', 'selectedPatientId', 'dashboardData'));
+        return view('doctor.dashboard', compact('doctor', 'patients', 'doctorProfile', 'selectedPatient', 'selectedPatientId', 'dashboardData', 'pendingRequests'));
     }
 
     /**
@@ -89,6 +106,34 @@ class DoctorController extends Controller
             'last_sync' => $child->last_sync,
             'created_at' => $child->user->created_at,
         ]);
+    }
+
+    /**
+     * Accepts or rejects a guardian link request (Web Session)
+     */
+    public function respondToRequest(Request $request, $link_id)
+    {
+        $request->validate([
+            'action' => 'required|in:accept,deny',
+        ]);
+
+        $link = ClinicianPatientLink::find($link_id);
+        if (!$link) {
+            return response()->json(['success' => false, 'message' => 'Link not found'], 404);
+        }
+
+        $doctor = DoctorProfile::where('user_id', Auth::id())->first();
+        if (!$doctor || $link->doctor_id != $doctor->doctor_id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        if ($request->action === 'accept') {
+            $link->update(['is_active' => 1]);
+            return response()->json(['success' => true, 'message' => 'Link accepted']);
+        } else {
+            $link->delete();
+            return response()->json(['success' => true, 'message' => 'Link denied']);
+        }
     }
 
     /**
@@ -120,10 +165,7 @@ class DoctorController extends Controller
             ], 403);
         }
 
-        $nextRecommendationId = ((int) Prescription::max('recommendation_id')) + 1;
-
         $recommendation = Prescription::create([
-            'recommendation_id' => $nextRecommendationId,
             'link_id' => $link->link_id,
             'advice_text' => trim($validated['plan']),
             'date_issued' => now(),
@@ -147,14 +189,18 @@ class DoctorController extends Controller
             return response()->json(['error' => 'Patient not found'], 404);
         }
 
-        // Get actual compliance data from database
-        $scores = $child->eyeHealthScores()->orderBy('recorded_date', 'desc')->limit(7)->get();
+        $metrics = $child->eyeHealthMetrics()
+            ->selectRaw('DATE(timestamp) as date, AVG(health_score) as avg_score')
+            ->groupByRaw('DATE(timestamp)')
+            ->orderByRaw('DATE(timestamp) DESC')
+            ->limit(7)
+            ->get();
 
         return response()->json([
-            'dates' => $scores->map(fn($s) => $s->recorded_date->format('M d'))->reverse()->values(),
-            'scores' => $scores->map(fn($s) => $s->daily_score)->reverse()->values(),
-            'average' => $scores->avg('daily_score') ?? 0,
-            'count' => $scores->count(),
+            'dates' => $metrics->map(fn($m) => \Carbon\Carbon::parse($m->date)->format('M d'))->reverse()->values(),
+            'scores' => $metrics->map(fn($m) => round((float) $m->avg_score))->reverse()->values(),
+            'average' => round($metrics->avg('avg_score') ?? 0),
+            'count' => $metrics->count(),
         ]);
     }
 

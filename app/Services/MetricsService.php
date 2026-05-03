@@ -11,26 +11,34 @@ use Illuminate\Support\Carbon;
 
 class MetricsService
 {
-    public function loginChild(string $loginCode, ?string $deviceId): array
+    public function loginChild(string $loginCode, string $password, ?string $deviceId): array
     {
-        $child = ChildProfile::where('login_code', $loginCode)->first();
+        $child = ChildProfile::with('guardians.user')->where('login_code', $loginCode)->first();
 
         if (!$child) {
             return $this->response('error', 'Invalid login code', null, ['login_code' => ['Invalid login code']], 401);
+        }
+
+        $childUser = User::find($child->user_id);
+
+        // NEW: Verify Password
+        if (!$childUser || !\Illuminate\Support\Facades\Hash::check($password, $childUser->password_hash)) {
+            return $this->response('error', 'Invalid password', null, ['password' => ['Invalid password']], 401);
         }
 
         if ($deviceId) {
             $child->update(['device_id' => $deviceId]);
         }
 
-        $childUser = User::find($child->user_id);
+        // Extract guardian email for Flutter caching
+        $childUser->tokens()->where('name', 'child-mobile')->delete(); 
+        $token = $childUser->createToken('child-mobile')->plainTextToken;
 
         return $this->response('success', 'Child login successful', [
-            'child' => [
-                'child_id' => $child->child_id,
-                'name' => $childUser->display_name ?? 'Child',
-                'birthdate' => $child->birthdate,
-            ],
+            'display_name' => $childUser->display_name ?? 'Child',
+            'child_id' => $child->child_id,
+            'guardian_email' => $guardianEmail,
+            'access_token' => $token,
         ]);
     }
 
@@ -40,6 +48,21 @@ class MetricsService
 
         if (!$child) {
             return $this->response('error', 'Child not found', null, ['child_id' => ['Child not found']], 404);
+        }
+        $isChild = (int) $child->user_id === (int) $authUserId;
+        
+        $isLinkedGuardian = \Illuminate\Support\Facades\DB::table('guardian_child_link')
+            ->join('guardian_profile', 'guardian_child_link.guardian_id', '=', 'guardian_profile.guardian_id')
+            ->where('guardian_child_link.child_id', $childId)
+            ->where('guardian_profile.user_id', $authUserId)
+            ->exists();
+
+        if (!$isChild && !$isLinkedGuardian) {
+            return $this->response('error', 'Unauthorized', null, ['authorization' => ['Unauthorized']], 403);
+        }
+
+        if (empty($metrics)) {
+            return $this->response('error', 'Metrics is empty', null, ['metrics' => ['Metrics is empty']], 400);
         }
 
         if ((int) $child->user_id !== (int) $authUserId) {
@@ -77,7 +100,15 @@ class MetricsService
             return $this->response('error', 'Child not found', null, ['child_id' => ['Child not found']], 404);
         }
 
-        if ((int) $child->user_id !== (int) $authUserId) {
+        $isChild = (int) $child->user_id === (int) $authUserId;
+        
+        $isLinkedGuardian = \Illuminate\Support\Facades\DB::table('guardian_child_link')
+            ->join('guardian_profile', 'guardian_child_link.guardian_id', '=', 'guardian_profile.guardian_id')
+            ->where('guardian_child_link.child_id', $childId)
+            ->where('guardian_profile.user_id', $authUserId)
+            ->exists();
+
+        if (!$isChild && !$isLinkedGuardian) {
             return $this->response('error', 'Unauthorized', null, ['authorization' => ['Unauthorized']], 403);
         }
 
@@ -120,7 +151,6 @@ class MetricsService
                 'health_score'        => $metric['health_score'] ?? null,
                 'coins'                => $metric['coins'] ?? null,
                 'timestamp' => $timestamp,
-                'created_at' => now(),
             ];
         }
 

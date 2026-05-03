@@ -54,7 +54,11 @@ class GuardianController extends Controller
         $limits = SessionLimits::where('child_id', $childId)->first();
 
         // Calculate eye health score (mock calculation - in production, use your algorithm)
-        $eyeHealthScore = $this->calculateEyeHealthScore($todayMetrics, $limits);
+        $eyeHealthScore = 100; // Default
+        if ($todayMetrics->isNotEmpty()) {
+            $latestMetric = $todayMetrics->sortByDesc('timestamp')->first();
+            $eyeHealthScore = $latestMetric->health_score ?? 100;
+        }
 
         // Get weekly metrics for analytics
         $weekStart = Carbon::now()->subDays(6)->toDateString();
@@ -90,43 +94,5 @@ class GuardianController extends Controller
         $children = $guardian->children()->with('user')->get();
 
         return view('guardian.children', compact('children'));
-    }
-
-    /**
-     * Calculate eye health score based on metrics and limits
-     */
-    private function calculateEyeHealthScore($metrics, $limits)
-    {
-        if ($metrics->isEmpty()) {
-            return 75; // Default score
-        }
-
-        $score = 100;
-
-        // Deduct points for high screen time
-        $avgScreenTime = $metrics->avg('screen_time_minutes');
-        if ($avgScreenTime > ($limits->daily_limit_minutes ?? 120) * 0.8) {
-            $score -= 15;
-        }
-
-        // Deduct points for low blink rate
-        $avgBlinkRate = $metrics->avg('avg_blink_rate');
-        if ($avgBlinkRate && $avgBlinkRate < 12) {
-            $score -= 20;
-        }
-
-        // Deduct points for close eye distance
-        $avgDistance = $metrics->avg('avg_distance');
-        if ($avgDistance && $avgDistance < ($limits->critical_distance_threshold ?? 10)) {
-            $score -= 25;
-        }
-
-        // Deduct points for strain events
-        $strainEvents = $metrics->sum('strain_events');
-        if ($strainEvents > 5) {
-            $score -= 15;
-        }
-
-        return max(0, min(100, (int) $score));
     }
 }

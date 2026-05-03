@@ -114,6 +114,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-lumi-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30vw;
+            font-weight: 900;
+            color: #E4FFD8;
+            z-index: -1;
+            letter-spacing: 25px;
+            user-select: none;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
+            text-shadow: 5px 15px 30px rgba(0, 0, 0, 0.05);
         }
 
         .phone-wrapper {

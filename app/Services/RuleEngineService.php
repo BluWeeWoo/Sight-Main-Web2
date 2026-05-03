@@ -64,19 +64,25 @@ class RuleEngineService
         $result = DB::transaction(function () use ($payload, $guardian) {
             [$firstName, $lastName] = $this->extractNameParts($payload);
 
+            // Use the mobile-provided password if it exists, otherwise generate a random one (for web)
+            $passwordHash = isset($payload['mobile_password']) 
+                ? Hash::make($payload['mobile_password']) 
+                : Hash::make(uniqid());
+
             $childUser = User::create([
                 'first_name' => $firstName,
                 'last_name' => $lastName,
-                'email' => 'child_' . uniqid() . '@sightapp.local',
-                'password_hash' => Hash::make(uniqid()),
+                'email' => null,
+                'password_hash' => $passwordHash,
                 'role' => 'Child',
             ]);
 
-            $loginCode = $this->generateUniqueLoginCode();
+            // Use the mobile-provided login code if it exists, otherwise generate a unique one
+            $loginCode = $payload['mobile_login_code'] ?? $this->generateUniqueLoginCode();
 
             $child = ChildProfile::create([
                 'user_id' => $childUser->user_id,
-                'birthdate' => $payload['birthdate'],
+                'birthdate' => $payload['birthdate'] ?? '2015-01-01', // Fallback for mobile
                 'login_code' => $loginCode,
             ]);
 

@@ -236,6 +236,7 @@
     </style>
 </head>
 <body>
+    <div class="bg-lumi-text">LUMI</div>
     <div class="login-container">
         <div class="card login-card">
             <div class="card-header">

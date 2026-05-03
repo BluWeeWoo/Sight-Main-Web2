@@ -232,7 +232,6 @@ class AdminController extends Controller
             Hash::make($tempPassword),
             'Doctor',
             [
-                'user_id' => $this->nextPrimaryKey('user', 'user_id'),
                 'status' => 'pending',
                 'email_verified_at' => null,
                 'must_change_password' => 1,
@@ -259,7 +258,6 @@ class AdminController extends Controller
                 $doctorProfile->save();
             } else {
                 DB::table('doctor_profile')->insert(array_merge([
-                    'doctor_id' => $this->nextPrimaryKey('doctor_profile', 'doctor_id'),
                     'user_id' => $professional->user_id,
                 ], $profilePayload));
             }
@@ -355,7 +353,6 @@ class AdminController extends Controller
                 $doctorProfile->save();
             } else {
                 DB::table('doctor_profile')->insert(array_merge([
-                    'doctor_id' => $this->nextPrimaryKey('doctor_profile', 'doctor_id'),
                     'user_id' => $professional->user_id,
                 ], $profilePayload));
             }
@@ -479,7 +476,6 @@ class AdminController extends Controller
                     Hash::make($validated['password']),
                     'Admin',
                     [
-                        'user_id' => $this->nextPrimaryKey('user', 'user_id'),
                         'status' => 'active',
                         'email_verified_at' => now(),
                     ]
@@ -491,7 +487,6 @@ class AdminController extends Controller
 
                 if (Schema::hasTable('admin_profile')) {
                     $profilePayload = [
-                        'admin_id' => $this->nextPrimaryKey('admin_profile', 'admin_id'),
                         'user_id' => $createdAdmin->user_id,
                     ];
 
@@ -624,15 +619,19 @@ class AdminController extends Controller
         $user = User::findOrFail($userId);
 
         if (!Schema::hasColumn('user', 'email_verified_at')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Verification column is missing in the current database schema.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Verification column is missing.'], 422);
         }
 
         // Toggle between verified (now) and unverified (null)
         $user->email_verified_at = $user->email_verified_at ? null : now();
         $user->save();
+
+        // Sync the doctor_profile.is_validated column
+        $doctorProfile = \App\Models\DoctorProfile::where('user_id', $userId)->first();
+        if ($doctorProfile) {
+            $doctorProfile->is_validated = $user->email_verified_at ? 1 : 0;
+            $doctorProfile->save();
+        }
 
         return response()->json([
             'success' => true,
@@ -672,15 +671,6 @@ class AdminController extends Controller
         }
 
         return $payload;
-    }
-
-    /**
-     * Generate next primary key for schemas without auto-increment.
-     */
-    private function nextPrimaryKey(string $table, string $column): int
-    {
-        $max = DB::table($table)->max($column);
-        return ((int) $max) + 1;
     }
 
     /**
